@@ -174,8 +174,8 @@ jobs:
         run: |
           echo "::group::Gitleaks - Detecção no Histórico Git"
           echo "🔎 Analisando histórico completo do repositório..."
-          gitleaks git \
-            . \
+          gitleaks detect \
+            --source . \
             --report-format sarif \
             --report-path gitleaks-report.sarif \
             --verbose || true
@@ -186,8 +186,9 @@ jobs:
         run: |
           echo "::group::Gitleaks - Detecção em Arquivos (dir mode)"
           echo "🔎 Analisando arquivos do diretório (sem histórico Git)..."
-          gitleaks dir \
-            . \
+          gitleaks detect \
+            --source . \
+            --no-git \
             --report-format json \
             --report-path gitleaks-dir-report.json \
             --verbose || true
