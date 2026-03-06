@@ -43,40 +43,52 @@
 
 ---
 
-## 🔄 Detect vs Protect
+## 🔄 Subcomandos: git, dir, stdin
 
-O Gitleaks possui dois modos principais de operação:
+O Gitleaks possui três subcomandos principais (a partir da v8.18):
 
-### 🔍 `detect` — Análise retrospectiva
+### 🔍 `git` — Análise do histórico Git
 ```bash
-gitleaks detect --source .
+gitleaks git .
 ```
 - Analisa **commits já existentes** no histórico
 - Útil para **auditoria** de repositórios existentes
 - Ideal para CI/CD para verificar código já commitado
+- Suporta `--staged` para funcionar como pre-commit hook
 
-### 🛡️ `protect` — Proteção proativa
+### 📂 `dir` — Análise do filesystem (sem Git)
 ```bash
-gitleaks protect --staged
+gitleaks dir .
 ```
-- Verifica apenas o **índice Git (staged files)**
-- Usado em **pre-commit hooks** para interceptar antes do commit
-- Previne que segredos entrem no histórico
+- Analisa **arquivos no disco** sem precisar de histórico Git
+- Ideal para escanear diretórios ou arquivos isolados
+- Suporta scan recursivo de arquivos compactados (zip, tar) com `--max-archive-depth`
+
+### 📥 `stdin` — Leitura de entrada padrão
+```bash
+cat arquivo.txt | gitleaks stdin
+```
+- Analisa dados **pipados** de outros comandos
+- Útil para integrar com outras ferramentas
 
 ### Diferença visual:
 
 ```
-DETECT: Analisa histórico completo
+gitleaks git: Analisa histórico completo
   commit 1 → ✅
   commit 2 → ✅
   commit 3 → ❌ SEGREDO ENCONTRADO!
   commit 4 → ✅
   (todos os commits são verificados)
 
-PROTECT: Intercepta antes do commit
+gitleaks git --staged: Intercepta antes do commit
   git add secret.txt
   git commit → BLOCKED! ❌ Segredo detectado
   (commit nunca entra no histórico)
+
+gitleaks dir: Analisa arquivos no disco
+  /configs/settings.yaml → ❌ SEGREDO ENCONTRADO!
+  /src/main.py → ✅
 ```
 
 ---
@@ -110,11 +122,24 @@ brew install gitleaks
 
 ### Método 3: Docker
 ```bash
-# Analisa diretório atual
+# Analisa histórico Git do diretório atual
 docker run --rm \
   -v "$(pwd):/repo" \
   zricethezav/gitleaks:latest \
-  detect --source /repo
+  git /repo --verbose
+
+# Analisa diretório sem histórico Git
+docker run --rm \
+  -v "$(pwd):/repo" \
+  zricethezav/gitleaks:latest \
+  dir /repo
+
+# Com configuração customizada
+docker run --rm \
+  -v "$(pwd):/repo" \
+  -v "$(pwd)/.gitleaks.toml:/config/.gitleaks.toml" \
+  zricethezav/gitleaks:latest \
+  git /repo --config /config/.gitleaks.toml
 ```
 
 ### Método 4: Go
@@ -132,45 +157,77 @@ Acesse: [https://github.com/gitleaks/gitleaks/releases](https://github.com/gitle
 
 ### Estrutura básica
 ```
-gitleaks <comando> [flags] --source <caminho>
+gitleaks <subcomando> [flags] [caminho]
 ```
 
 ### Comandos essenciais
 
 ```bash
-# Detectar segredos no histórico Git completo
-gitleaks detect --source .
+# ---- SUBCOMANDO: git (histórico Git) ----
 
-# Detectar em modo verbose (mostra todos os detalhes)
-gitleaks detect --source . --verbose
+# Escanear histórico do repositório atual
+gitleaks git --verbose
 
-# Detectar em arquivos não-commitados (sem histórico Git)
-gitleaks detect --source . --no-git
+# Escanear repositório específico
+gitleaks git /caminho/para/repo --verbose
 
-# Proteger (verificar staged files)
-gitleaks protect --staged
+# Verificar apenas staged files (pre-commit hook)
+gitleaks git --staged --verbose
+
+# Verificar intervalo de commits
+gitleaks git --log-opts="abc123..def456"
 
 # Gerar relatório JSON
-gitleaks detect --source . \
+gitleaks git . \
   --report-format json \
   --report-path gitleaks-report.json
 
-# Gerar relatório SARIF
-gitleaks detect --source . \
+# Gerar relatório SARIF (compatível com GitHub Security tab)
+gitleaks git . \
   --report-format sarif \
   --report-path gitleaks-report.sarif
 
+# Scan com baseline (ignora findings já conhecidos)
+gitleaks git . \
+  --baseline-path baseline.json \
+  --report-path new-findings.json
+
+# Habilitar scan dentro de arquivos compactados
+gitleaks git . --max-archive-depth 3
+
+# Habilitar detecção de segredos codificados (base64, hex)
+gitleaks git . --max-decode-depth 2
+
+# ---- SUBCOMANDO: dir (filesystem) ----
+
+# Escanear diretório atual
+gitleaks dir --verbose
+
+# Escanear diretório específico
+gitleaks dir examples/secrets/ --verbose
+
+# Escanear arquivo único
+gitleaks dir examples/secrets/vulnerable-sample.env
+
+# Seguir symlinks
+gitleaks dir --follow-symlinks /caminho/
+
+# Gerar relatório SARIF
+gitleaks dir . \
+  --report-path results.sarif \
+  --report-format sarif
+
+# Redigir segredos no output (50% redact)
+gitleaks dir --redact=50 --verbose
+
+# ---- SUBCOMANDO: stdin ----
+
+# Pipar conteúdo para verificação
+cat suspicious.txt | gitleaks stdin --verbose
+echo 'AWS_KEY=AKIAIOSFODNN7EXAMPLE' | gitleaks stdin
+
 # Usar arquivo de configuração customizado
-gitleaks detect --source . \
-  --config .gitleaks.toml
-
-# Especificar branch específica
-gitleaks detect --source . \
-  --log-opts="--branches main develop"
-
-# Verificar apenas últimos N commits
-gitleaks detect --source . \
-  --log-opts="-n 50"
+gitleaks git . --config .gitleaks.toml
 ```
 
 ### Opções de output:
@@ -180,8 +237,11 @@ gitleaks detect --source . \
 | `--report-format` | Formato: `json`, `csv`, `sarif`, `junit` |
 | `--report-path` | Caminho do arquivo de relatório |
 | `--verbose` | Mostra detalhes de cada finding |
+| `--redact` | Redige parte do segredo no output (e.g. `--redact=50`) |
 | `--no-color` | Desabilita cores no output |
 | `--exit-code` | Código de saída quando encontra segredos (padrão: 1) |
+| `--max-archive-depth` | Profundidade máxima para scan de zips/tars aninhados |
+| `--max-decode-depth` | Profundidade para decodificar base64/hex antes de escanear |
 
 ---
 
@@ -244,7 +304,7 @@ tags = ["database", "credentials"]
 ### Como verificar se a configuração está correta:
 ```bash
 # Valida o arquivo de configuração
-gitleaks detect --source . --config .gitleaks.toml --verbose
+gitleaks git . --config .gitleaks.toml --verbose
 ```
 
 ---
@@ -265,8 +325,8 @@ if ! command -v gitleaks &> /dev/null; then
     exit 0
 fi
 
-# Executa verificação de staged files
-gitleaks protect --staged --verbose
+# Executa verificação de staged files (novo subcomando: git --staged)
+gitleaks git --staged --verbose
 
 if [ $? -ne 0 ]; then
     echo ""
@@ -293,7 +353,7 @@ repos:
       - id: gitleaks
         name: Detectar segredos com Gitleaks
         description: Verifica staged files por segredos antes do commit
-        entry: gitleaks protect --staged --verbose
+        entry: gitleaks git --staged --verbose
         language: golang
         pass_filenames: false
 ```
@@ -320,7 +380,7 @@ git clone https://github.com/minha-org/meu-repo.git
 cd meu-repo
 
 # Verifica histórico completo
-gitleaks detect --source . \
+gitleaks git . \
   --report-format json \
   --report-path audit-report.json \
   --verbose
@@ -329,24 +389,33 @@ gitleaks detect --source . \
 cat audit-report.json | python3 -c "import json,sys; data=json.load(sys.stdin); print(f'Total: {len(data)} segredos encontrados')"
 ```
 
-### Exemplo 2: Integração em pipeline CI
+### Exemplo 2: Integração em pipeline CI (apenas diff do PR)
 ```bash
-# Na pipeline, analisa apenas mudanças do PR
-gitleaks detect \
-  --source . \
+# Na pipeline, analisa apenas commits novos
+gitleaks git . \
   --log-opts="origin/main..HEAD" \
   --report-format sarif \
   --report-path gitleaks-results.sarif \
   --verbose || true
 ```
 
-### Exemplo 3: Scan de arquivo específico
+### Exemplo 3: Scan de diretório de segredos
 ```bash
-# Analisa sem considerar histórico Git
-gitleaks detect \
-  --source examples/secrets/ \
-  --no-git \
-  --verbose
+# Analisa diretório sem histórico Git
+gitleaks dir examples/secrets/ --verbose
+```
+
+### Exemplo 4: Criar e usar baseline
+```bash
+# Gera baseline do estado atual (ignora findings já conhecidos)
+gitleaks git . --report-path baseline.json --report-format json
+git add baseline.json
+git commit -m "Add gitleaks baseline"
+
+# Scans futuros só reportam NOVOS segredos
+gitleaks git . \
+  --baseline-path baseline.json \
+  --report-path new-findings.json
 ```
 
 ### Lendo o relatório JSON:
@@ -387,4 +456,4 @@ gitleaks detect \
 
 ---
 
-> **Dica pro**: Execute `gitleaks detect --source . --no-git` regularmente em seus projetos mesmo sem histórico Git para verificar arquivos que podem ter sido adicionados sem passar pelo git!
+> **Dica pro**: Execute `gitleaks dir .` regularmente em seus projetos para verificar arquivos que possam conter segredos, independente do histórico Git. Use `gitleaks git . --max-decode-depth 2` para detectar segredos codificados em base64 ou hex!

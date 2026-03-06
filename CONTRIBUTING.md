@@ -120,7 +120,7 @@ cd CaioDevSecOps
 git remote add upstream https://github.com/toolbox-playground/CaioDevSecOps.git
 
 # 4. (Opcional) Instale as ferramentas localmente para testar
-pip install checkov
+pip3 install checkov
 
 # Gitleaks
 wget https://github.com/gitleaks/gitleaks/releases/download/v8.18.4/gitleaks_8.18.4_linux_x64.tar.gz -O /tmp/gl.tar.gz
@@ -129,8 +129,9 @@ tar -xzf /tmp/gl.tar.gz -C /tmp/ && sudo mv /tmp/gitleaks /usr/local/bin/
 # TruffleHog
 curl -sSfL https://raw.githubusercontent.com/trufflesecurity/trufflehog/main/scripts/install.sh | sudo sh -s -- -b /usr/local/bin
 
-# Trivy (Ubuntu/Debian)
-sudo apt-get install trivy
+# Trivy (script oficial recomendado)
+curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh \
+  | sudo sh -s -- -b /usr/local/bin
 
 # Snyk
 npm install -g snyk
@@ -149,16 +150,16 @@ npm install -g snyk
 ### YAML (workflows):
 ```yaml
 # ✅ Bom — com comentários explicativos
-- name: 📦 Instalar Checkov via pip
+- name: 📦 Instalar Checkov via pip3
   run: |
     echo "::group::Instalando Checkov"
-    pip install checkov         # Instalação manual sem actions prontas
+    pip3 install checkov        # Instalação manual sem actions prontas
     checkov --version           # Confirma instalação
     echo "::endgroup::"
 
 # ❌ Evite — sem comentários, nome genérico
 - name: step1
-  run: pip install checkov
+  run: pip3 install checkov
 ```
 
 ### Markdown:

@@ -59,23 +59,15 @@
 
 ## 📦 Como instalar
 
-### Método 1: apt (Ubuntu/Debian) — Usado na pipeline
+### Método 1: Script de instalação (Recomendado)
 ```bash
-# Adiciona repositório oficial
-sudo apt-get install -y wget apt-transport-https gnupg lsb-release
+# Instala versão mais recente automaticamente
+curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh \
+  | sudo sh -s -- -b /usr/local/bin
 
-# Chave GPG
-wget -qO - https://aquasecurity.github.io/trivy-repo/deb/public.key \
-  | gpg --dearmor \
-  | sudo tee /usr/share/keyrings/trivy.gpg > /dev/null
-
-# Repositório
-echo "deb [signed-by=/usr/share/keyrings/trivy.gpg] https://aquasecurity.github.io/trivy-repo/deb $(lsb_release -sc) main" \
-  | sudo tee /etc/apt/sources.list.d/trivy.list
-
-# Instala
-sudo apt-get update
-sudo apt-get install -y trivy
+# Versão específica
+curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh \
+  | sudo sh -s -- -b /usr/local/bin v0.58.0
 
 # Verifica
 trivy --version
@@ -102,20 +94,31 @@ docker run --rm \
   filesystem .
 ```
 
-### Método 4: Script de instalação
+### Método 4: apt (Ubuntu/Debian)
 ```bash
-# Instala versão mais recente automaticamente
-curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh \
-  | sudo sh -s -- -b /usr/local/bin
+# Adiciona repositório oficial
+sudo apt-get install -y wget apt-transport-https gnupg lsb-release
 
-# Versão específica
-curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh \
-  | sudo sh -s -- -b /usr/local/bin v0.48.0
+# Chave GPG
+wget -qO - https://aquasecurity.github.io/trivy-repo/deb/public.key \
+  | gpg --dearmor \
+  | sudo tee /usr/share/keyrings/trivy.gpg > /dev/null
+
+# Repositório
+echo "deb [signed-by=/usr/share/keyrings/trivy.gpg] https://aquasecurity.github.io/trivy-repo/deb $(lsb_release -sc) main" \
+  | sudo tee /etc/apt/sources.list.d/trivy.list
+
+# Instala
+sudo apt-get update
+sudo apt-get install -y trivy
+
+# Verifica
+trivy --version
 ```
 
 ### Método 5: RPM (CentOS/RHEL/Fedora)
 ```bash
-sudo rpm -ivh https://github.com/aquasecurity/trivy/releases/download/v0.48.0/trivy_0.48.0_Linux-64bit.rpm
+sudo rpm -ivh https://github.com/aquasecurity/trivy/releases/download/v0.58.0/trivy_0.58.0_Linux-64bit.rpm
 ```
 
 ---

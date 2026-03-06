@@ -5,17 +5,20 @@
 ### Pipeline de Segurança Unificada para DevSecOps
 
 [![GitHub Actions](https://img.shields.io/github/actions/workflow/status/toolbox-playground/CaioDevSecOps/unified-security-pipeline.yaml?branch=main&label=Security%20Pipeline&logo=github-actions&logoColor=white&style=for-the-badge)](https://github.com/toolbox-playground/CaioDevSecOps/actions)
-[![Checkov](https://img.shields.io/badge/Checkov-IaC%20Security-blue?style=for-the-badge&logo=python)](https://www.checkov.io/)
-[![Gitleaks](https://img.shields.io/badge/Gitleaks-Secret%20Detection-red?style=for-the-badge&logo=git)](https://github.com/gitleaks/gitleaks)
-[![TruffleHog](https://img.shields.io/badge/TruffleHog-Secret%20Hunter-orange?style=for-the-badge)](https://trufflesecurity.com/trufflehog)
-[![Trivy](https://img.shields.io/badge/Trivy-Vulnerability%20Scanner-green?style=for-the-badge&logo=aqua)](https://aquasecurity.github.io/trivy/)
-[![Snyk](https://img.shields.io/badge/Snyk-Code%20Security-purple?style=for-the-badge&logo=snyk)](https://snyk.io/)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow?style=for-the-badge)](LICENSE.md)
+[![Checkov](https://img.shields.io/badge/Checkov-IaC%20Security-0080FF?style=for-the-badge&logo=python&logoColor=white)](https://www.checkov.io/)
+[![Gitleaks](https://img.shields.io/badge/Gitleaks-Secret%20Detection-E63946?style=for-the-badge&logo=git&logoColor=white)](https://github.com/gitleaks/gitleaks)
+[![TruffleHog](https://img.shields.io/badge/TruffleHog-Secret%20Hunter-FF6B35?style=for-the-badge&logo=data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCI+PHBhdGggZmlsbD0id2hpdGUiIGQ9Ik0xMiAyQzYuNDggMiAyIDYuNDggMiAxMnM0LjQ4IDEwIDEwIDEwIDEwLTQuNDggMTAtMTBTMTcuNTIgMiAxMiAyem0tMSAxNEg5VjhoMnY4em00IDBoLTJWOGgydjh6Ii8+PC9zdmc+)](https://trufflesecurity.com/trufflehog)
+[![Trivy](https://img.shields.io/badge/Trivy-Vulnerability%20Scanner-1DB954?style=for-the-badge&logo=aqua&logoColor=white)](https://aquasecurity.github.io/trivy/)
+[![Snyk](https://img.shields.io/badge/Snyk-Code%20Security-4C4A73?style=for-the-badge&logo=snyk&logoColor=white)](https://snyk.io/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-F7C948?style=for-the-badge)](LICENSE.md)
+[![Toolbox](https://img.shields.io/badge/By-Toolbox%20Playground-0A0A0A?style=for-the-badge&logo=github)](https://github.com/toolbox-playground)
 
 ---
 
 **Um repositório educacional completo com pipeline de segurança integrada,**  
-**exemplos vulneráveis e documentação detalhada para todos os níveis.**
+**exemplos vulneráveis intencionais e documentação detalhada para todos os níveis.**
+
+> 🗓️ Atualizado em Março de 2026 • Ferramentas verificadas via [Context7](https://context7.com)
 
 [🚀 Quick Start](#-quick-start) •
 [🛠️ Ferramentas](#️-ferramentas-incluídas) •
@@ -102,13 +105,13 @@ Opção B (manual): Actions → "Pipeline de Segurança Unificada" → "Run work
 
 ## 🛠️ Ferramentas Incluídas
 
-| # | Ferramenta | Tipo de Análise | Instalação | Docs |
-|---|------------|-----------------|------------|------|
-| 1 | 🏗️ **Checkov** | Análise estática de IaC (Terraform, Dockerfile) | `pip install checkov` | [CHECKOV.md](docs/CHECKOV.md) |
-| 2 | 🔑 **Gitleaks** | Detecção de segredos no histórico Git | `wget` + `tar` | [GITLEAKS.md](docs/GITLEAKS.md) |
-| 3 | 🐷 **TruffleHog** | Caça a segredos com verificação ativa | `curl` script | [TRUFFLEHOG.md](docs/TRUFFLEHOG.md) |
-| 4 | 🛡️ **Trivy** | Scanner de vulnerabilidades em containers/deps | `apt-get install` | [TRIVY.md](docs/TRIVY.md) |
-| 5 | 🐍 **Snyk** | Análise de código, deps, containers, IaC | `npm install -g snyk` | [SNYK.md](docs/SNYK.md) |
+| # | Ferramenta | Tipo de Análise | Instalação | Versão | Docs |
+|---|------------|-----------------|------------|--------|------|
+| 1 | 🏗️ **Checkov** | Análise estática de IaC (Terraform, Dockerfile, K8s) | `pip3 install checkov` | [![PyPI](https://img.shields.io/pypi/v/checkov?label=&color=blue)](https://pypi.org/project/checkov/) | [CHECKOV.md](docs/CHECKOV.md) |
+| 2 | 🔑 **Gitleaks** | Detecção de segredos no histórico Git e filesystem | `wget` + `tar` (binário) | [![GitHub release](https://img.shields.io/github/v/release/gitleaks/gitleaks?label=&color=red)](https://github.com/gitleaks/gitleaks/releases) | [GITLEAKS.md](docs/GITLEAKS.md) |
+| 3 | 🐷 **TruffleHog** | Caça a segredos com verificação ativa em 800+ fontes | `curl` script oficial | [![GitHub release](https://img.shields.io/github/v/release/trufflesecurity/trufflehog?label=&color=orange)](https://github.com/trufflesecurity/trufflehog/releases) | [TRUFFLEHOG.md](docs/TRUFFLEHOG.md) |
+| 4 | 🛡️ **Trivy** | Scanner de vulnerabilidades: containers, FS, IaC, SBOM | `curl` script oficial | [![GitHub release](https://img.shields.io/github/v/release/aquasecurity/trivy?label=&color=green)](https://github.com/aquasecurity/trivy/releases) | [TRIVY.md](docs/TRIVY.md) |
+| 5 | 🐍 **Snyk** | SAST, deps, containers e IaC com remediação automática | `npm install -g snyk` | [![npm](https://img.shields.io/npm/v/snyk?label=&color=purple)](https://www.npmjs.com/package/snyk) | [SNYK.md](docs/SNYK.md) |
 
 ---
 
@@ -188,28 +191,43 @@ on:
 
 #### 1. Checkov
 ```bash
-# Instala
-pip install checkov
+# Instala (pip3 recomendado)
+pip3 install checkov
+
+# Verifica instalação
+checkov --version
 
 # Scan de Terraform
 checkov --directory examples/terraform --soft-fail
 
 # Scan de Dockerfile
 checkov --file examples/python/Dockerfile --framework dockerfile --soft-fail
+
+# Scan com output SARIF (compatível com GitHub Security tab)
+checkov --directory examples/terraform --output sarif --output-file-path results.sarif
 ```
 
 #### 2. Gitleaks
 ```bash
-# Instala (Linux)
+# Instala (Linux) — binário estático, sem dependências
 wget https://github.com/gitleaks/gitleaks/releases/download/v8.18.4/gitleaks_8.18.4_linux_x64.tar.gz -O /tmp/gitleaks.tar.gz
 tar -xzf /tmp/gitleaks.tar.gz -C /tmp/
 sudo mv /tmp/gitleaks /usr/local/bin/
 
-# Detecta segredos no histórico Git
-gitleaks detect --source . --verbose
+# macOS
+brew install gitleaks
 
-# Detecta em arquivos sem histórico
-gitleaks detect --source examples/secrets/ --no-git --verbose
+# Verifica instalação
+gitleaks version
+
+# Detecta segredos no histórico Git (novo CLI: subcomando 'git')
+gitleaks git . --verbose
+
+# Detecta em diretório sem histórico Git (novo CLI: subcomando 'dir')
+gitleaks dir examples/secrets/ --verbose
+
+# Gera relatório JSON
+gitleaks git . --report-path gitleaks-report.json --report-format json
 ```
 
 #### 3. TruffleHog
@@ -226,20 +244,29 @@ trufflehog git file://. --no-verification --json
 
 #### 4. Trivy
 ```bash
-# Instala (Ubuntu/Debian)
-sudo apt-get install trivy
+# Instala via script oficial (recomendado — sempre instala a versão mais recente)
+curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | sudo sh -s -- -b /usr/local/bin
+
+# macOS via Homebrew
+brew install aquasecurity/trivy/trivy
+
+# Verifica instalação
+trivy --version
 
 # Constrói imagem de exemplo
 docker build -t caio-example examples/python/
 
-# Scan da imagem
+# Scan da imagem (somente CRITICAL e HIGH)
 trivy image --severity CRITICAL,HIGH caio-example
 
 # Scan de dependências Python
 trivy filesystem --scanners vuln examples/python/
 
-# Scan de IaC
+# Scan de IaC/Terraform
 trivy config examples/terraform/
+
+# Scan com output SARIF
+trivy image --format sarif --output trivy-results.sarif caio-example
 ```
 
 #### 5. Snyk
@@ -367,6 +394,15 @@ Isso é ESPERADO neste repositório (temos segredos de exemplo propositais).
 O job usa continue-on-error: true para não bloquear o pipeline.
 ```
 
+### ❌ "gitleaks: 'detect' is not a command" (CLI v8.18+)
+```bash
+# O subcomando 'detect' foi descontinuado — use os novos subcomandos:
+# 'detect --source . '          → 'git .'           (para repos Git)
+# 'detect --source dir --no-git' → 'dir .'          (para diretórios)
+# 'protect'                      → 'git --pre-commit' (no pre-commit hook)
+gitleaks git . --verbose
+```
+
 ### ❌ "Checkov: Module not found"
 ```bash
 # Solução: Certifique-se de ter Python 3.8+ e pip atualizado
@@ -381,6 +417,9 @@ trivy image --download-db-only
 
 # Ou usa cache de uma execução anterior
 trivy image --cache-dir ~/.cache/trivy nginx:latest
+
+# Alternativa: skip update e usa DB cacheado
+trivy image --skip-db-update caio-example
 ```
 
 ### ❌ "TruffleHog: command not found"
@@ -499,5 +538,9 @@ MIT License — Copyright (c) 2026 Toolbox Playground
 Feito com ❤️ pela equipe **[Toolbox Playground](https://github.com/toolbox-playground)**
 
 ⭐ Se este projeto te ajudou, considere dar uma estrela!
+
+---
+
+*Documentação verificada com [Context7](https://context7.com) • Março de 2026*
 
 </div>

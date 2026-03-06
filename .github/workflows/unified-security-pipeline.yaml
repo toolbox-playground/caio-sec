@@ -70,12 +70,12 @@ jobs:
           python-version: '3.11'
           cache: 'pip'
 
-      # Instalação manual do Checkov via pip (sem usar action pronta)
-      - name: 📦 Instalar Checkov manualmente via pip
+      # Instalação manual do Checkov via pip3 (sem usar action pronta)
+      - name: 📦 Instalar Checkov manualmente via pip3
         run: |
           echo "::group::Instalando Checkov"
           python -m pip install --upgrade pip
-          pip install checkov
+          pip3 install checkov
           echo "Versão instalada:"
           checkov --version
           echo "::endgroup::"
@@ -169,29 +169,27 @@ jobs:
           gitleaks version
           echo "::endgroup::"
 
-      # Detecta segredos no histórico completo do Git
-      - name: 🔍 Gitleaks - Detect (histórico Git)
+      # Detecta segredos no histórico completo do Git (novo subcomando 'git')
+      - name: 🔍 Gitleaks - Scan histórico Git
         run: |
           echo "::group::Gitleaks - Detecção no Histórico Git"
           echo "🔎 Analisando histórico completo do repositório..."
-          gitleaks detect \
-            --source . \
+          gitleaks git \
+            . \
             --report-format sarif \
             --report-path gitleaks-report.sarif \
-            --verbose \
-            --no-git=false || true
+            --verbose || true
           echo "::endgroup::"
 
-      # Detecta segredos em arquivos não commitados (staged)
-      - name: 🕵️ Gitleaks - Detect (arquivos atuais)
+      # Detecta segredos em arquivos do filesystem (novo subcomando 'dir')
+      - name: 🕵️ Gitleaks - Scan diretório (filesystem)
         run: |
-          echo "::group::Gitleaks - Detecção em Arquivos Atuais"
-          echo "🔎 Analisando arquivos atuais (no-git mode)..."
-          gitleaks detect \
-            --source . \
-            --no-git \
+          echo "::group::Gitleaks - Detecção em Arquivos (dir mode)"
+          echo "🔎 Analisando arquivos do diretório (sem histórico Git)..."
+          gitleaks dir \
+            . \
             --report-format json \
-            --report-path gitleaks-nogit-report.json \
+            --report-path gitleaks-dir-report.json \
             --verbose || true
           echo "::endgroup::"
 
@@ -202,7 +200,7 @@ jobs:
           name: gitleaks-results
           path: |
             gitleaks-report.sarif
-            gitleaks-nogit-report.json
+            gitleaks-dir-report.json
           retention-days: 30
 
   # ===========================================================================
@@ -282,26 +280,15 @@ jobs:
       - name: 📥 Checkout do código
         uses: actions/checkout@v4
 
-      # Instalação manual do Trivy via apt (sem usar action pronta)
-      - name: 📦 Instalar Trivy manualmente via apt
+      # Instalação manual do Trivy via script oficial (sem usar action pronta)
+      - name: 📦 Instalar Trivy manualmente via curl script
         run: |
           echo "::group::Instalando Trivy"
 
-          echo "⬇️  Adicionando repositório oficial do Trivy..."
-          sudo apt-get install -y wget apt-transport-https gnupg lsb-release
-
-          # Adiciona chave GPG oficial
-          wget -qO - https://aquasecurity.github.io/trivy-repo/deb/public.key \
-            | gpg --dearmor \
-            | sudo tee /usr/share/keyrings/trivy.gpg > /dev/null
-
-          # Adiciona repositório apt
-          echo "deb [signed-by=/usr/share/keyrings/trivy.gpg] https://aquasecurity.github.io/trivy-repo/deb $(lsb_release -sc) main" \
-            | sudo tee /etc/apt/sources.list.d/trivy.list
-
-          # Instala via apt
-          sudo apt-get update -qq
-          sudo apt-get install -y trivy
+          echo "⬇️  Instalando Trivy via script oficial da Aqua Security..."
+          # Método recomendado: script curl instala automaticamente a versão mais recente
+          curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh \
+            | sudo sh -s -- -b /usr/local/bin
 
           echo "✅ Versão instalada:"
           trivy --version

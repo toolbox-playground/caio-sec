@@ -71,16 +71,16 @@ Código Terraform/Dockerfile
 
 ## 📦 Como instalar
 
-### Método 1: pip (Recomendado)
+### Método 1: pip3 (Recomendado)
 ```bash
-# Instalar via pip
-pip install checkov
+# Instalar via pip3
+pip3 install checkov
 
 # Verificar instalação
 checkov --version
 
 # Atualizar para versão mais recente
-pip install --upgrade checkov
+pip3 install -U checkov
 ```
 
 ### Método 2: Docker
@@ -111,7 +111,7 @@ brew install checkov
 pip3 install checkov
 
 # Para Windows (PowerShell)
-pip install checkov
+pip3 install checkov
 ```
 
 ---
@@ -325,7 +325,7 @@ resource "aws_s3_bucket" "example" {
 ### GitHub Actions (manual, sem action pronta)
 ```yaml
 - name: Instalar Checkov
-  run: pip install checkov
+  run: pip3 install checkov
 
 - name: Executar Checkov
   run: |
@@ -341,7 +341,7 @@ resource "aws_s3_bucket" "example" {
 checkov:
   image: python:3.11-slim
   script:
-    - pip install checkov
+    - pip3 install checkov
     - checkov --directory . --output sarif --soft-fail
   artifacts:
     reports:
