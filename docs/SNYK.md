@@ -70,10 +70,10 @@ snyk --version
 npm update -g snyk
 ```
 
-### Método 2: Homebrew (macOS)
+### Método 2: Homebrew (macOS/Linux)
 ```bash
 brew tap snyk/tap
-brew install snyk
+brew install snyk-cli
 ```
 
 ### Método 3: Scoop (Windows)

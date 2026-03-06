@@ -63,49 +63,81 @@ $$H = -\sum_{i=1}^{n} p_i \log_2 p_i$$
 
 ## 📦 Como instalar
 
-### Método 1: Script oficial (Usado na pipeline)
+### 🐧 Linux — Script oficial (Usado na pipeline)
 ```bash
 # Instala o binário mais recente
 curl -sSfL https://raw.githubusercontent.com/trufflesecurity/trufflehog/main/scripts/install.sh \
   | sudo sh -s -- -b /usr/local/bin
 
+# Versão específica
+curl -sSfL https://raw.githubusercontent.com/trufflesecurity/trufflehog/main/scripts/install.sh \
+  | sudo sh -s -- -b /usr/local/bin v3.88.0
+
 # Verifica
 trufflehog --version
 ```
 
-### Método 2: Homebrew (macOS)
+### 🧳 Windows — PowerShell
+```powershell
+# Opção 1: Download direto (PowerShell)
+$VERSION = "3.88.0"
+$URL = "https://github.com/trufflesecurity/trufflehog/releases/download/v$VERSION/trufflehog_${VERSION}_windows_amd64.zip"
+Invoke-WebRequest -Uri $URL -OutFile "$env:TEMP\trufflehog.zip"
+Expand-Archive -Path "$env:TEMP\trufflehog.zip" -DestinationPath "$env:TEMP\trufflehog"
+Move-Item "$env:TEMP\trufflehog\trufflehog.exe" "C:\Windows\System32\trufflehog.exe"
+trufflehog --version
+```
+
+```bash
+# Opção 2: WSL (Windows Subsystem for Linux)
+# O script de instalação também funciona no WSL:
+curl -sSfL https://raw.githubusercontent.com/trufflesecurity/trufflehog/main/scripts/install.sh \
+  | sh -s -- -b /usr/local/bin
+```
+
+### 🍎 macOS — Homebrew
 ```bash
 brew install trufflehog
 ```
 
-### Método 3: Docker
+### 🐳 Docker (todas as plataformas)
 ```bash
-# Scan de repositório Git
+# Linux/macOS — scan de repositório Git
 docker run --rm \
   trufflesecurity/trufflehog:latest \
   git https://github.com/minha-org/meu-repo.git
 
-# Scan de filesystem local
+# Linux/macOS — scan de filesystem local
 docker run --rm \
   -v "$(pwd):/repo" \
   trufflesecurity/trufflehog:latest \
   filesystem /repo
 ```
 
-### Método 4: Go
+```powershell
+# Windows PowerShell
+docker run --rm -it `
+  -v "${PWD}:/pwd" `
+  trufflesecurity/trufflehog:latest `
+  git file:///pwd --results=verified,unknown
+```
+
+### 🔧 Go (todas as plataformas)
 ```bash
 # Requere Go 1.21+
 go install github.com/trufflesecurity/trufflehog/v3@latest
 ```
 
-### Método 5: Binário direto
-```bash
-# Baixa versão específica
-TRUFFLEHOG_VERSION="3.63.2"
-wget "https://github.com/trufflesecurity/trufflehog/releases/download/v${TRUFFLEHOG_VERSION}/trufflehog_${TRUFFLEHOG_VERSION}_linux_amd64.tar.gz"
-tar -xzf trufflehog_*.tar.gz
-sudo mv trufflehog /usr/local/bin/
-```
+### 💾 Binários pré-compilados
+Acesse: [https://github.com/trufflesecurity/trufflehog/releases](https://github.com/trufflesecurity/trufflehog/releases)
+
+| Plataforma | Arquivo |
+|---|---|
+| Linux x64 | `trufflehog_X.Y.Z_linux_amd64.tar.gz` |
+| Linux ARM64 | `trufflehog_X.Y.Z_linux_arm64.tar.gz` |
+| Windows x64 | `trufflehog_X.Y.Z_windows_amd64.zip` |
+| macOS x64 | `trufflehog_X.Y.Z_darwin_amd64.tar.gz` |
+| macOS ARM64 | `trufflehog_X.Y.Z_darwin_arm64.tar.gz` |
 
 ---
 

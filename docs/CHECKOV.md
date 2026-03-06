@@ -71,21 +71,49 @@ Código Terraform/Dockerfile
 
 ## 📦 Como instalar
 
-### Método 1: pip3 (Recomendado)
+### 🐧 Linux — pip3 (Usado na pipeline)
 ```bash
-# Instalar via pip3
 pip3 install checkov
+checkov --version
+pip3 install -U checkov  # Atualizar
+```
 
-# Verificar instalação
+### 🐧 Linux — Ambiente virtual / venv (Debian 12+)
+> No Debian 12+, o pip do sistema é gerenciado e requer venv para instalar pacotes globalmente.
+
+```bash
+# Cria e ativa o ambiente virtual
+python3 -m venv /opt/venv/checkov
+source /opt/venv/checkov/bin/activate
+
+# Instala dentro do venv
+pip install checkov
+
+# Opcional: criar symlink para acesso global
+sudo ln -s /opt/venv/checkov/bin/checkov /usr/local/bin/checkov
+
+# Verifica
+checkov --version
+```
+
+### 🪟 Windows — PowerShell
+```powershell
+# pip3 funciona nativamente no Windows com Python instalado
+pip3 install checkov
 checkov --version
 
-# Atualizar para versão mais recente
+# Atualizar
 pip3 install -U checkov
 ```
 
-### Método 2: Docker
+### 🍎 macOS — Homebrew
 ```bash
-# Executar via Docker (sem instalar)
+brew install checkov
+```
+
+### 🐳 Docker (todas as plataformas)
+```bash
+# Linux/macOS — scan de diretório
 docker run --rm \
   -v "$(pwd):/tf" \
   bridgecrew/checkov \
@@ -100,18 +128,12 @@ docker run --rm \
   --output-file-path /tf/results.sarif
 ```
 
-### Método 3: Homebrew (macOS)
-```bash
-brew install checkov
-```
-
-### Método 4: Binário pré-compilado
-```bash
-# Para Linux
-pip3 install checkov
-
-# Para Windows (PowerShell)
-pip3 install checkov
+```powershell
+# Windows PowerShell
+docker run --rm `
+  -v "${PWD}:/tf" `
+  bridgecrew/checkov `
+  --directory /tf
 ```
 
 ---

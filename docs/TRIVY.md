@@ -59,7 +59,7 @@
 
 ## 📦 Como instalar
 
-### Método 1: Script de instalação (Recomendado)
+### 🐧 Linux — Script de instalação (Usado na pipeline)
 ```bash
 # Instala versão mais recente automaticamente
 curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh \
@@ -73,28 +73,7 @@ curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/inst
 trivy --version
 ```
 
-### Método 2: Homebrew (macOS)
-```bash
-brew install aquasecurity/trivy/trivy
-```
-
-### Método 3: Docker (sem instalar)
-```bash
-# Scan de imagem Docker
-docker run --rm \
-  -v /var/run/docker.sock:/var/run/docker.sock \
-  aquasec/trivy:latest \
-  image nginx:latest
-
-# Scan de filesystem local
-docker run --rm \
-  -v "$(pwd):/workdir" \
-  -w /workdir \
-  aquasec/trivy:latest \
-  filesystem .
-```
-
-### Método 4: apt (Ubuntu/Debian)
+### 🐧 Linux — apt (Ubuntu/Debian)
 ```bash
 # Adiciona repositório oficial
 sudo apt-get install -y wget apt-transport-https gnupg lsb-release
@@ -111,14 +90,52 @@ echo "deb [signed-by=/usr/share/keyrings/trivy.gpg] https://aquasecurity.github.
 # Instala
 sudo apt-get update
 sudo apt-get install -y trivy
-
-# Verifica
 trivy --version
 ```
 
-### Método 5: RPM (CentOS/RHEL/Fedora)
+### 🐧 Linux — RPM (CentOS/RHEL/Fedora)
 ```bash
 sudo rpm -ivh https://github.com/aquasecurity/trivy/releases/download/v0.58.0/trivy_0.58.0_Linux-64bit.rpm
+```
+
+### 🪟 Windows — PowerShell (Binário pré-compilado)
+```powershell
+$VERSION = "0.58.0"
+$URL = "https://github.com/aquasecurity/trivy/releases/download/v$VERSION/trivy_${VERSION}_windows-64bit.zip"
+Invoke-WebRequest -Uri $URL -OutFile "$env:TEMP\trivy.zip"
+Expand-Archive -Path "$env:TEMP\trivy.zip" -DestinationPath "$env:TEMP\trivy"
+Move-Item "$env:TEMP\trivy\trivy.exe" "C:\Windows\System32\trivy.exe"
+trivy --version
+```
+
+### 🍎 macOS — Homebrew
+```bash
+brew install aquasecurity/trivy/trivy
+```
+
+### 🐳 Docker (todas as plataformas)
+```bash
+# Linux/macOS — scan de imagem Docker
+docker run --rm \
+  -v /var/run/docker.sock:/var/run/docker.sock \
+  aquasec/trivy:latest \
+  image nginx:latest
+
+# Linux/macOS — scan de filesystem local
+docker run --rm \
+  -v "$(pwd):/workdir" \
+  -w /workdir \
+  aquasec/trivy:latest \
+  filesystem .
+```
+
+```powershell
+# Windows PowerShell
+docker run --rm `
+  -v "${PWD}:/workdir" `
+  -w /workdir `
+  aquasec/trivy:latest `
+  filesystem .
 ```
 
 ---

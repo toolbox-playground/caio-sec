@@ -95,10 +95,10 @@ gitleaks dir: Analisa arquivos no disco
 
 ## 📦 Como instalar
 
-### Método 1: wget/tar (Linux/macOS) — Usado na pipeline
+### 🐧 Linux — wget/tar (Usado na pipeline)
 ```bash
 # Define versão
-GITLEAKS_VERSION="8.18.4"
+GITLEAKS_VERSION="8.24.2"
 
 # Baixa o binário
 wget "https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz" \
@@ -115,26 +115,47 @@ sudo chmod +x /usr/local/bin/gitleaks
 gitleaks version
 ```
 
-### Método 2: Homebrew (macOS)
+### 🪟 Windows — PowerShell
+```powershell
+# Opção 1: Download direto (PowerShell)
+$VERSION = "8.24.2"
+$URL = "https://github.com/gitleaks/gitleaks/releases/download/v$VERSION/gitleaks_${VERSION}_windows_x64.zip"
+Invoke-WebRequest -Uri $URL -OutFile "$env:TEMP\gitleaks.zip"
+Expand-Archive -Path "$env:TEMP\gitleaks.zip" -DestinationPath "$env:TEMP\gitleaks"
+Move-Item "$env:TEMP\gitleaks\gitleaks.exe" "C:\Windows\System32\gitleaks.exe"
+gitleaks version
+```
+
+```powershell
+# Opção 2: Chocolatey
+choco install gitleaks
+```
+
+```powershell
+# Opção 3: Winget
+winget install gitleaks.gitleaks
+```
+
+### 🍎 macOS — Homebrew
 ```bash
 brew install gitleaks
 ```
 
-### Método 3: Docker
+### 🐳 Docker (todas as plataformas)
 ```bash
-# Analisa histórico Git do diretório atual
+# Linux/macOS — analisa histórico Git
 docker run --rm \
   -v "$(pwd):/repo" \
   zricethezav/gitleaks:latest \
   git /repo --verbose
 
-# Analisa diretório sem histórico Git
+# Linux/macOS — analisa diretório sem histórico Git
 docker run --rm \
   -v "$(pwd):/repo" \
   zricethezav/gitleaks:latest \
   dir /repo
 
-# Com configuração customizada
+# Linux/macOS — com configuração customizada
 docker run --rm \
   -v "$(pwd):/repo" \
   -v "$(pwd)/.gitleaks.toml:/config/.gitleaks.toml" \
@@ -142,14 +163,30 @@ docker run --rm \
   git /repo --config /config/.gitleaks.toml
 ```
 
-### Método 4: Go
+```powershell
+# Windows PowerShell
+docker run --rm `
+  -v "${PWD}:/repo" `
+  zricethezav/gitleaks:latest `
+  git /repo --verbose
+```
+
+### 🔧 Go (todas as plataformas)
 ```bash
 # Requere Go 1.21+
 go install github.com/gitleaks/gitleaks/v8@latest
 ```
 
-### Método 5: Binários pré-compilados
+### 💾 Binários pré-compilados
 Acesse: [https://github.com/gitleaks/gitleaks/releases](https://github.com/gitleaks/gitleaks/releases)
+
+| Plataforma | Arquivo |
+|---|---|
+| Linux x64 | `gitleaks_X.Y.Z_linux_x64.tar.gz` |
+| Linux ARM64 | `gitleaks_X.Y.Z_linux_arm64.tar.gz` |
+| Windows x64 | `gitleaks_X.Y.Z_windows_x64.zip` |
+| macOS x64 | `gitleaks_X.Y.Z_darwin_x64.tar.gz` |
+| macOS ARM64 | `gitleaks_X.Y.Z_darwin_arm64.tar.gz` |
 
 ---
 

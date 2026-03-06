@@ -39,6 +39,8 @@
 - [🔧 Configuração](#-configuração)
 - [🎯 Como Usar](#-como-usar)
 - [📖 Documentação Detalhada](#-documentação-detalhada)
+- [🏫 GitHub Code Security — Dever de Casa](#-github-code-security--dever-de-casa)
+- [🔵 SonarQube — SAST e Quality Gates](#-sonarqube--sast-e-quality-gates)
 - [🧪 Exemplos de Vulnerabilidades](#-exemplos-de-vulnerabilidades)
 - [📊 Resultados Esperados](#-resultados-esperados)
 - [🔍 Troubleshooting](#-troubleshooting)
@@ -112,6 +114,7 @@ Opção B (manual): Actions → "Pipeline de Segurança Unificada" → "Run work
 | 3 | 🐷 **TruffleHog** | Caça a segredos com verificação ativa em 800+ fontes | `curl` script oficial | [![GitHub release](https://img.shields.io/github/v/release/trufflesecurity/trufflehog?label=&color=orange)](https://github.com/trufflesecurity/trufflehog/releases) | [TRUFFLEHOG.md](docs/TRUFFLEHOG.md) |
 | 4 | 🛡️ **Trivy** | Scanner de vulnerabilidades: containers, FS, IaC, SBOM | `curl` script oficial | [![GitHub release](https://img.shields.io/github/v/release/aquasecurity/trivy?label=&color=green)](https://github.com/aquasecurity/trivy/releases) | [TRIVY.md](docs/TRIVY.md) |
 | 5 | 🐍 **Snyk** | SAST, deps, containers e IaC com remediação automática | `npm install -g snyk` | [![npm](https://img.shields.io/npm/v/snyk?label=&color=purple)](https://www.npmjs.com/package/snyk) | [SNYK.md](docs/SNYK.md) |
+| 6 | 🔵 **SonarQube** | SAST, Code Quality, Security Hotspots, Quality Gates | Docker / SaaS (Cloud) | [![Docker](https://img.shields.io/docker/v/sonarqube/sonarqube?label=&color=blue)](https://hub.docker.com/_/sonarqube) | [SONARQUBE.md](docs/SONARQUBE.md) |
 
 ---
 
@@ -139,6 +142,8 @@ CaioDevSecOps/
 ├── docs/
 │   ├── CHECKOV.md              ← Guia completo: instalação, comandos, exemplos
 │   ├── GITLEAKS.md             ← Guia completo: detect vs protect, configuração
+│   ├── GITHUB-CODE-SECURITY.md ← Dever de casa: Secret Scanning, CodeQL, Dependabot
+│   ├── SONARQUBE.md            ← Guia completo: SAST, Quality Gates, GitHub Actions
 │   ├── TRUFFLEHOG.md           ← Guia completo: entropia, verificação ativa
 │   ├── TRIVY.md                ← Guia completo: imagens, filesystem, IaC
 │   └── SNYK.md                 ← Guia completo: token, comandos, integração
@@ -158,8 +163,10 @@ CaioDevSecOps/
 | Secret | Obrigatório | Descrição | Como obter |
 |--------|-------------|-----------|------------|
 | `SNYK_TOKEN` | Opcional | Token de autenticação do Snyk | [https://app.snyk.io/account](https://app.snyk.io/account) |
+| `SONAR_TOKEN` | Opcional | Token de análise do SonarQube | SonarQube → My Account → Security → Generate Token |
+| `SONAR_HOST_URL` | Opcional | URL do servidor SonarQube | `https://sonarcloud.io` (Cloud) ou `http://seu-servidor:9000` (Server) |
 
-> **Nota**: Checkov, Gitleaks, TruffleHog e Trivy funcionam **sem nenhuma configuração adicional**. Apenas o Snyk requer um token.
+> **Nota**: Checkov, Gitleaks, TruffleHog e Trivy funcionam **sem nenhuma configuração adicional**. Snyk e SonarQube requerem tokens.
 
 ### Variáveis de ambiente da pipeline
 
@@ -306,12 +313,49 @@ snyk container test caio-example --file=examples/python/Dockerfile
 Cada ferramenta possui um guia completo na pasta `docs/`:
 
 | Documento | Conteúdo |
-|-----------|---------|
+|-----------|----------|
 | 📄 [docs/CHECKOV.md](docs/CHECKOV.md) | IaC security, políticas CIS, configuração customizada |
 | 📄 [docs/GITLEAKS.md](docs/GITLEAKS.md) | Detect vs Protect, pre-commit hooks, `.gitleaks.toml` |
 | 📄 [docs/TRUFFLEHOG.md](docs/TRUFFLEHOG.md) | Verificação ativa, análise de entropia, múltiplas fontes |
 | 📄 [docs/TRIVY.md](docs/TRIVY.md) | Containers, filesystem, IaC, severidades CVSS |
 | 📄 [docs/SNYK.md](docs/SNYK.md) | Token, SAST, dependências, monitoramento contínuo |
+| 📄 [docs/SONARQUBE.md](docs/SONARQUBE.md) | SAST com data flow, Quality Gates, Security Hotspots, GitHub Actions |
+| 🏫 [docs/GITHUB-CODE-SECURITY.md](docs/GITHUB-CODE-SECURITY.md) | Secret Scanning, CodeQL, Dependabot, Dependency Review — com exercícios |
+
+---
+
+## 🏫 GitHub Code Security — Dever de Casa
+
+O GitHub possui sua própria suíte de segurança **nativa** que complementa as ferramentas desta pipeline:
+
+| Recurso GitHub | Ferramenta equivalente nesta pipeline |
+|----------------|--------------------------------------|
+| 🔐 Secret Scanning | Gitleaks, TruffleHog |
+| 🧬 Code Scanning (CodeQL) | Snyk Code, Checkov |
+| 🤖 Dependabot Alerts | Trivy, Snyk |
+| 🔗 Dependency Review Action | Trivy, Snyk |
+| ⛓️ Supply Chain / SBOM | Trivy (CycloneDX/SPDX) |
+
+📖 **Guia completo com 6 exercícios práticos**: [docs/GITHUB-CODE-SECURITY.md](docs/GITHUB-CODE-SECURITY.md)
+
+---
+
+## 🔵 SonarQube — SAST e Quality Gates
+
+O **SonarQube** realiza análise estática profunda do código (SAST) com rastreamento de fluxo de dados, complementando as ferramentas já presentes na pipeline:
+
+| Recurso SonarQube | Diferencial |
+|-------------------|-------------|
+| 🔐 **Vulnerabilidades** | SQL Injection, XSS, SSRF — com data flow completo |
+| 🔥 **Security Hotspots** | Código sensível que requer revisão humana |
+| 🚦 **Quality Gates** | Bloqueia PRs automaticamente se o código reprovar |
+| 📏 **Cobertura de testes** | Integra relatório do pytest/coverage.xml |
+| 🧬 **Duplicação** | Detecta código duplicado em todo o projeto |
+| 📊 **Histórico de métricas** | Rating A–E para Security, Reliability e Maintainability |
+
+> **Modalidades**: SonarQube Cloud (SaaS — grátis para repos públicos em sonarcloud.io) ou SonarQube Server autogerenciado (Docker).
+
+📖 **Guia completo com workflows, Quality Gates e troubleshooting**: [docs/SONARQUBE.md](docs/SONARQUBE.md)
 
 ---
 
@@ -500,6 +544,7 @@ Formas de contribuir:
 | TruffleHog | [trufflesecurity.com](https://trufflesecurity.com/trufflehog) | [github.com/trufflesecurity/trufflehog](https://github.com/trufflesecurity/trufflehog) |
 | Trivy | [aquasecurity.github.io/trivy](https://aquasecurity.github.io/trivy/) | [github.com/aquasecurity/trivy](https://github.com/aquasecurity/trivy) |
 | Snyk | [docs.snyk.io](https://docs.snyk.io/) | [github.com/snyk/cli](https://github.com/snyk/cli) |
+| SonarQube | [docs.sonarsource.com/sonarqube-server](https://docs.sonarsource.com/sonarqube-server/latest) | [github.com/SonarSource/sonarqube](https://github.com/SonarSource/sonarqube) |
 
 ### Recursos de aprendizado:
 - 📚 [OWASP Top 10](https://owasp.org/www-project-top-ten/) — As 10 vulnerabilidades mais críticas
@@ -507,6 +552,7 @@ Formas de contribuir:
 - 🔬 [CVE Database](https://cve.mitre.org/) — Base de dados de vulnerabilidades
 - 🛡️ [NIST NVD](https://nvd.nist.gov/) — National Vulnerability Database
 - 📖 [DevSecOps PlayBook](https://github.com/6mile/DevSecOps-Playbook) — Guia completo de DevSecOps
+- 🏫 [GitHub Code Security (PT)](https://docs.github.com/pt/code-security) — Documentação oficial em português
 
 ---
 
