@@ -94,7 +94,7 @@ jobs:
             --output sarif \
             --output-file-path . \
             --soft-fail \
-            --compact || true
+            --compact
           echo "::endgroup::"
 
       # Scan do Dockerfile com Checkov
@@ -107,7 +107,7 @@ jobs:
             --framework dockerfile \
             --output cli \
             --soft-fail \
-            --compact || true
+            --compact
           echo "::endgroup::"
 
       # Scan geral de toda a estrutura do repositório
@@ -121,7 +121,7 @@ jobs:
             --output cli \
             --soft-fail \
             --compact \
-            --quiet || true
+            --quiet
           echo "::endgroup::"
 
       # Salva relatório como artefato para download
@@ -181,7 +181,7 @@ jobs:
             --source . \
             --report-format sarif \
             --report-path gitleaks-report.sarif \
-            --verbose || true
+            --verbose
           echo "::endgroup::"
 
       # Detecta segredos em arquivos do filesystem (novo subcomando 'dir')
@@ -194,7 +194,7 @@ jobs:
             --no-git \
             --report-format json \
             --report-path gitleaks-dir-report.json \
-            --verbose || true
+            --verbose
           echo "::endgroup::"
 
       - name: 💾 Salvar relatório Gitleaks
@@ -244,7 +244,7 @@ jobs:
             --json \
             --no-update \
             --results=verified,unknown,unverified \
-            2>&1 | tee trufflehog-filesystem.json || true
+            2>&1 | tee trufflehog-filesystem.json
           echo "Scan do filesystem concluído."
           echo "::endgroup::"
 
@@ -258,7 +258,7 @@ jobs:
             --json \
             --no-update \
             --results=verified,unknown,unverified \
-            2>&1 | tee trufflehog-git.json || true
+            2>&1 | tee trufflehog-git.json
           echo "Scan do histórico concluído."
           echo "::endgroup::"
 
@@ -306,7 +306,7 @@ jobs:
           docker build \
             -t caio-devsecops-example:latest \
             examples/python/ \
-            --no-cache || true
+            --no-cache
           echo "Build concluído."
           echo "::endgroup::"
 
@@ -320,17 +320,17 @@ jobs:
             --format table \
             --output trivy-image-report.txt \
             --quiet \
-            caio-devsecops-example:latest || true
+            caio-devsecops-example:latest
 
           # Também gera em formato JSON
           trivy image \
             --format json \
             --output trivy-image-report.json \
             --quiet \
-            caio-devsecops-example:latest || true
+            caio-devsecops-example:latest
 
           echo "Scan da imagem concluído."
-          cat trivy-image-report.txt || true
+          cat trivy-image-report.txt
           echo "::endgroup::"
 
       # Scan do filesystem com Trivy
@@ -343,8 +343,8 @@ jobs:
             --format table \
             --output trivy-fs-report.txt \
             --quiet \
-            examples/python/ || true
-          cat trivy-fs-report.txt || true
+            examples/python/
+          cat trivy-fs-report.txt
           echo "::endgroup::"
 
       # Scan de configurações IaC com Trivy
@@ -357,8 +357,8 @@ jobs:
             --format table \
             --output trivy-config-report.txt \
             --quiet \
-            . || true
-          cat trivy-config-report.txt || true
+            .
+          cat trivy-config-report.txt
           echo "::endgroup::"
 
       - name: 💾 Salvar relatórios Trivy
@@ -427,7 +427,7 @@ jobs:
       - name: 📦 Instalar dependências Python de exemplo
         run: |
           echo "::group::Instalando dependências Python"
-          pip install -r examples/python/requirements.txt || true
+          pip install -r examples/python/requirements.txt
           echo "::endgroup::"
 
       # Análise de dependências Open Source com Snyk
@@ -442,10 +442,10 @@ jobs:
               --file=examples/python/requirements.txt \
               --package-manager=pip \
               --json \
-              --json-file-output=snyk-dependencies-report.json || true
+              --json-file-output=snyk-dependencies-report.json
             snyk test \
               --file=examples/python/requirements.txt \
-              --package-manager=pip || true
+              --package-manager=pip
           fi
           echo "::endgroup::"
         env:
@@ -459,13 +459,13 @@ jobs:
             echo "⚠️  SNYK_TOKEN não configurado. Pulando scan de container."
           else
             echo "🐳 Construindo imagem para análise Snyk..."
-            docker build -t caio-snyk-test:latest examples/python/ || true
+            docker build -t caio-snyk-test:latest examples/python/
             echo "🔎 Analisando imagem Docker com Snyk..."
             snyk container test \
               caio-snyk-test:latest \
               --file=examples/python/Dockerfile \
               --json \
-              --json-file-output=snyk-container-report.json || true
+              --json-file-output=snyk-container-report.json
           fi
           echo "::endgroup::"
         env:
@@ -482,7 +482,7 @@ jobs:
             snyk iac test \
               examples/terraform/ \
               --json \
-              --json-file-output=snyk-iac-report.json || true
+              --json-file-output=snyk-iac-report.json
           fi
           echo "::endgroup::"
         env:
@@ -552,13 +552,13 @@ jobs:
       - name: 📦 Instalar dependências Python e gerar cobertura
         run: |
           echo "::group::Dependências e cobertura"
-          pip install -r examples/python/requirements.txt || true
-          pip install pytest pytest-cov || true
+          pip install -r examples/python/requirements.txt
+          pip install pytest pytest-cov
           pytest examples/python/ \
             --cov=examples/python \
             --cov-report=xml:coverage.xml \
-            --ignore=examples/python/app.py \
-            || true
+            --ignore=examples/python/app.py
+            
           echo "::endgroup::"
 
       # Análise SAST com sonar-scanner CLI
@@ -582,7 +582,7 @@ jobs:
             -Dsonar.host.url=$SONAR_HOST_URL \
             -Dsonar.token=$SONAR_TOKEN \
             -Dsonar.qualitygate.wait=true \
-            -Dsonar.qualitygate.timeout=300 || true
+            -Dsonar.qualitygate.timeout=300
           echo "Análise SonarQube concluída."
           echo "::endgroup::"
         env:
