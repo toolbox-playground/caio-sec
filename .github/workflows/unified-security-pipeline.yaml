@@ -665,8 +665,12 @@ jobs:
   python-ci:
     name: 🧪 Python CI - Build and Validation
     runs-on: ubuntu-latest
+    if: ${{ always() }}
     needs:
-      - security-summary
+      - checkov
+      - gitleaks
+      - trufflehog
+      - trivy
 
     steps:
       - name: 📥 Checkout do código
@@ -730,6 +734,7 @@ jobs:
   fake-cd:
     name: 🚀 Fake CD - Simulated Deployment Stage
     runs-on: ubuntu-latest
+    if: ${{ always() }}
     needs:
       - python-ci
 
