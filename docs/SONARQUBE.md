@@ -474,28 +474,51 @@ O SonarQube complementa as ferramentas já presentes na `unified-security-pipeli
 | Checkov verifica IaC | SonarQube verifica IaC + código da aplicação |
 | Snyk code test faz SAST básico | SonarQube SAST com **data flow completo** e histórico |
 
-### Adicionar à pipeline unificada
+### Integração com a pipeline unificada
+
+O job SonarQube já está incluído na `unified-security-pipeline.yaml` como **JOB 6**, instalando o sonar-scanner CLI manualmente (sem usar actions prontas), conforme o padrão da pipeline:
 
 ```yaml
-# Adicione ao .github/workflows/unified-security-pipeline.yaml
   sonarqube:
-    name: 🔵 SonarQube
+    name: 🔵 SonarQube - SAST Analysis
     runs-on: ubuntu-latest
     continue-on-error: true
+    if: ${{ vars.SONARQUBE_ENABLED == 'true' || secrets.SONAR_TOKEN != '' }}
+
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      - name: SonarQube Scan
-        uses: SonarSource/sonarqube-scan-action@v5
+      - name: ☕ Configurar Java 17 (requisito do sonar-scanner)
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      # Instalação manual via curl (sem usar action pronta)
+      - name: 📦 Instalar sonar-scanner manualmente via curl
+        run: |
+          SCANNER_VERSION="6.2.1.4610"
+          curl -sSL \
+            "https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-${SCANNER_VERSION}-linux-x64.zip" \
+            -o /tmp/sonar-scanner.zip
+          unzip -q /tmp/sonar-scanner.zip -d /opt/
+          sudo ln -s /opt/sonar-scanner-${SCANNER_VERSION}-linux-x64/bin/sonar-scanner /usr/local/bin/sonar-scanner
+          sonar-scanner --version
+
+      - name: 🔍 SonarQube - Análise SAST do código
+        run: |
+          sonar-scanner \
+            -Dsonar.projectKey=caio-sec \
+            -Dsonar.sources=examples/python,examples/terraform \
+            -Dsonar.python.version=3.11 \
+            -Dsonar.host.url=$SONAR_HOST_URL \
+            -Dsonar.token=$SONAR_TOKEN \
+            -Dsonar.qualitygate.wait=true || true
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
-        with:
-          args: >
-            -Dsonar.projectKey=caio-sec
-            -Dsonar.sources=examples/python,examples/terraform
 ```
 
 > **Secrets necessários**:

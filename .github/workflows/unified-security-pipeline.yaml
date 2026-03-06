@@ -1,7 +1,7 @@
 # =============================================================================
 # PIPELINE DE SEGURANÇA UNIFICADA - CaioDevSecOps
 # =============================================================================
-# Descrição: Pipeline que executa 5 ferramentas de segurança de forma manual,
+# Descrição: Pipeline que executa 6 ferramentas de segurança de forma manual,
 #            sem usar actions prontas. Todas as ferramentas são instaladas
 #            diretamente via pip, wget, curl, apt ou npm.
 #
@@ -11,6 +11,7 @@
 #   3. TruffleHog - Caça a segredos com entropia e regex avançados
 #   4. Trivy      - Scanner de vulnerabilidades em containers e filesystems
 #   5. Snyk       - Análise de dependências e vulnerabilidades de código
+#   6. SonarQube  - Análise estática de qualidade e segurança do código (SAST)
 #
 # Autor: CaioDevSecOps
 # Repositório: https://github.com/toolbox-playground/CaioDevSecOps
@@ -497,6 +498,96 @@ jobs:
           retention-days: 30
 
   # ===========================================================================
+  # JOB 6: SONARQUBE - Análise Estática de Qualidade e Segurança (SAST)
+  # ===========================================================================
+  sonarqube:
+    name: 🔵 SonarQube - SAST Analysis
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    # Só executa se SONAR_TOKEN estiver configurado
+    if: ${{ vars.SONARQUBE_ENABLED == 'true' || secrets.SONAR_TOKEN != '' }}
+
+    steps:
+      - name: 📥 Checkout do código
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: ☕ Configurar Java 17 (requisito do sonar-scanner)
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      - name: 🐍 Configurar Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      # Instalação manual do sonar-scanner CLI via curl (sem usar action pronta)
+      - name: 📦 Instalar sonar-scanner manualmente via curl
+        run: |
+          echo "::group::Instalando sonar-scanner CLI"
+
+          SCANNER_VERSION="6.2.1.4610"
+
+          echo "⬇️  Baixando sonar-scanner-cli v${SCANNER_VERSION}..."
+          curl -sSL \
+            "https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-${SCANNER_VERSION}-linux-x64.zip" \
+            -o /tmp/sonar-scanner.zip
+
+          echo "📦 Extraindo..."
+          unzip -q /tmp/sonar-scanner.zip -d /opt/
+
+          echo "🚀 Instalando em /usr/local/bin/..."
+          sudo ln -s /opt/sonar-scanner-${SCANNER_VERSION}-linux-x64/bin/sonar-scanner /usr/local/bin/sonar-scanner
+
+          echo "✅ Versão instalada:"
+          sonar-scanner --version
+          echo "::endgroup::"
+
+      # Instala dependências e gera relatório de cobertura para enriquecer análise
+      - name: 📦 Instalar dependências Python e gerar cobertura
+        run: |
+          echo "::group::Dependências e cobertura"
+          pip install -r examples/python/requirements.txt || true
+          pip install pytest pytest-cov || true
+          pytest examples/python/ \
+            --cov=examples/python \
+            --cov-report=xml:coverage.xml \
+            --ignore=examples/python/app.py \
+            || true
+          echo "::endgroup::"
+
+      # Análise SAST com sonar-scanner CLI
+      - name: 🔍 SonarQube - Análise SAST do código
+        run: |
+          echo "::group::SonarQube - Análise SAST"
+          if [ -z "$SONAR_TOKEN" ] || [ -z "$SONAR_HOST_URL" ]; then
+            echo "⚠️  SONAR_TOKEN ou SONAR_HOST_URL não configurados. Pulando análise SonarQube."
+            echo "   Configure os secrets SONAR_TOKEN e SONAR_HOST_URL no repositório."
+            echo "   Acesse: https://docs.sonarsource.com/sonarqube-server/latest para instruções."
+            exit 0
+          fi
+          echo "🔎 Iniciando análise SAST..."
+          sonar-scanner \
+            -Dsonar.projectKey=caio-sec \
+            -Dsonar.projectName=CaioDevSecOps \
+            -Dsonar.sources=examples/python,examples/terraform \
+            -Dsonar.exclusions="**/__pycache__/**,**/.terraform/**,**/*.zip,**/*.tar.gz" \
+            -Dsonar.python.version=3.11 \
+            -Dsonar.python.coverage.reportPaths=coverage.xml \
+            -Dsonar.host.url=$SONAR_HOST_URL \
+            -Dsonar.token=$SONAR_TOKEN \
+            -Dsonar.qualitygate.wait=true \
+            -Dsonar.qualitygate.timeout=300 || true
+          echo "Análise SonarQube concluída."
+          echo "::endgroup::"
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
+
+  # ===========================================================================
   # JOB FINAL: RESUMO DA PIPELINE
   # ===========================================================================
   security-summary:
@@ -510,6 +601,7 @@ jobs:
       - trufflehog
       - trivy
       - snyk
+      - sonarqube
 
     steps:
       - name: 📥 Checkout do código
@@ -533,6 +625,7 @@ jobs:
           echo "| 🐷 TruffleHog | Secret Hunter | ${{ needs.trufflehog.result }} | Caça a segredos com verificação |" >> $GITHUB_STEP_SUMMARY
           echo "| 🛡️ Trivy | Vuln Scanner | ${{ needs.trivy.result }} | Scan de containers e dependências |" >> $GITHUB_STEP_SUMMARY
           echo "| 🐍 Snyk | Code & Deps | ${{ needs.snyk.result }} | Análise de código e dependências |" >> $GITHUB_STEP_SUMMARY
+          echo "| 🔵 SonarQube | SAST | ${{ needs.sonarqube.result }} | Análise estática de qualidade e segurança |" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### 📝 Observações" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
@@ -540,10 +633,11 @@ jobs:
           echo "- ⚠️ Os exemplos contêm vulnerabilidades **intencionais** para demonstração" >> $GITHUB_STEP_SUMMARY
           echo "- 📁 Relatórios completos disponíveis em **Artifacts** desta execução" >> $GITHUB_STEP_SUMMARY
           echo "- 🔐 Para habilitar Snyk, configure o secret **SNYK_TOKEN** no repositório" >> $GITHUB_STEP_SUMMARY
+          echo "- 🔵 Para habilitar SonarQube, configure os secrets **SONAR_TOKEN** e **SONAR_HOST_URL**" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### 📚 Documentação" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "- [Checkov](docs/CHECKOV.md) | [Gitleaks](docs/GITLEAKS.md) | [TruffleHog](docs/TRUFFLEHOG.md) | [Trivy](docs/TRIVY.md) | [Snyk](docs/SNYK.md)" >> $GITHUB_STEP_SUMMARY
+          echo "- [Checkov](docs/CHECKOV.md) | [Gitleaks](docs/GITLEAKS.md) | [TruffleHog](docs/TRUFFLEHOG.md) | [Trivy](docs/TRIVY.md) | [Snyk](docs/SNYK.md) | [SonarQube](docs/SONARQUBE.md)" >> $GITHUB_STEP_SUMMARY
 
       - name: ✅ Pipeline Concluída com Sucesso
         run: |
@@ -557,6 +651,7 @@ jobs:
           echo "  ✅ TruffleHog - ${{ needs.trufflehog.result }}"
           echo "  ✅ Trivy     - ${{ needs.trivy.result }}"
           echo "  ✅ Snyk      - ${{ needs.snyk.result }}"
+          echo "  ✅ SonarQube - ${{ needs.sonarqube.result }}"
           echo ""
           echo "  📁 Relatórios salvos como Artifacts"
           echo "  📖 Consulte a documentação em docs/"

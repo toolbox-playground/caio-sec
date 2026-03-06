@@ -152,14 +152,14 @@ trufflehog <fonte> [flags]
 
 ```bash
 # ---- FILESYSTEM ----
-# Analisa sistema de arquivos local
-trufflehog filesystem --directory /path/to/dir
+# Analisa sistema de arquivos local (path é argumento posicional)
+trufflehog filesystem /path/to/dir
 
-# Com output JSON
-trufflehog filesystem --directory . --json
+# Com output JSON e sem auto-update (recomendado em CI)
+trufflehog filesystem . --json --no-update
 
 # Apenas segredos verificados (válidos)
-trufflehog filesystem --directory . --only-verified
+trufflehog filesystem . --results=verified
 
 # ---- GIT ----
 # Analisa histórico Git local
@@ -201,12 +201,12 @@ trufflehog syslog --address=0.0.0.0:514 --protocol=tcp
 | Flag | Descrição |
 |------|-----------|
 | `--json` | Output em formato JSON |
-| `--only-verified` | Reporta apenas segredos verificados (ativos) |
+| `--results` | Filtra por: `verified`, `unknown`, `unverified`, `filtered_unverified` |
 | `--no-verification` | Não verifica ativamente (mais rápido) |
+| `--no-update` | Não verifica novas versões (essencial em CI) |
 | `--concurrency` | Número de workers paralelos (padrão: 8) |
 | `--include-detectors` | Lista de detectores a usar |
 | `--exclude-detectors` | Lista de detectores a ignorar |
-| `--results` | Filtra por: `verified`, `unknown`, `unverified` |
 
 ---
 
@@ -215,28 +215,30 @@ trufflehog syslog --address=0.0.0.0:514 --protocol=tcp
 ### Modo verificado (padrão em produção)
 ```bash
 trufflehog git https://github.com/org/repo.git \
-  --only-verified \
+  --results=verified \
   --json
 ```
 - Reporta apenas credenciais **ATIVAS** (testadas e válidas)
 - **Menor número de falsos positivos**
 - Mais devagar (faz chamadas de API)
 
-### Modo não-verificado (usado na pipeline)
+### Modo não-verificado (mais rápido)
 ```bash
-trufflehog filesystem --directory . \
+trufflehog filesystem . \
   --no-verification \
-  --json
+  --json \
+  --no-update
 ```
 - Reporta todos os padrões que **parecem** credenciais
 - **Mais rápido** (sem chamadas de API)
 - Pode ter mais falsos positivos
 
-### Modo "all results"
+### Modo "all results" (usado na pipeline)
 ```bash
-trufflehog filesystem --directory . \
+trufflehog filesystem . \
   --results=verified,unknown,unverified \
-  --json
+  --json \
+  --no-update
 ```
 
 ---
@@ -288,8 +290,9 @@ tests/fixtures/
 ```bash
 # Scan rápido sem verificação ativa
 trufflehog filesystem \
-  --directory . \
+  . \
   --no-verification \
+  --no-update \
   --json 2>&1 | head -100
 ```
 
