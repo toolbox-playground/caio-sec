@@ -483,7 +483,7 @@ O job SonarQube já está incluído na `unified-security-pipeline.yaml` como **J
     name: 🔵 SonarQube - SAST Analysis
     runs-on: ubuntu-latest
     continue-on-error: true
-    if: ${{ vars.SONARQUBE_ENABLED == 'true' || secrets.SONAR_TOKEN != '' }}
+    if: ${{ vars.SONARQUBE_ENABLED == 'true' }}
 
     steps:
       - uses: actions/checkout@v4
@@ -521,9 +521,15 @@ O job SonarQube já está incluído na `unified-security-pipeline.yaml` como **J
           SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
 ```
 
+> **Variável de controle**: O job SonarQube só roda quando a variável de repositório `SONARQUBE_ENABLED` estiver definida como `true`.  
+> Configure em: `Settings → Secrets and variables → Actions → Variables → New repository variable`  
+> Nome: `SONARQUBE_ENABLED` | Valor: `true`
+>
 > **Secrets necessários**:
 > - `SONAR_TOKEN` — token gerado no SonarQube (Server ou Cloud)
 > - `SONAR_HOST_URL` — `http://seu-servidor:9000` ou `https://sonarcloud.io`
+>
+> ⚠️ **Nota**: `secrets` não pode ser usado em condições `if:` de jobs no GitHub Actions. Por isso, o controle de ativação é feito exclusivamente via `vars.SONARQUBE_ENABLED`.
 
 ---
 

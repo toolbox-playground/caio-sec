@@ -276,10 +276,18 @@ snyk fix
 ## 🔗 Integração CI/CD
 
 ### GitHub Actions (manual, sem action pronta)
+
+> **Controle de execução**: O job Snyk só roda quando a variável de repositório `SNYK_ENABLED` estiver definida como `true` **e** o input `skip_snyk` não for `true`.  
+> Configure em: `Settings → Secrets and variables → Actions → Variables → New repository variable`  
+> Nome: `SNYK_ENABLED` | Valor: `true`
+
 ```yaml
 jobs:
-  snyk-scan:
+  snyk:
+    name: 🐍 Snyk - Dependency & Code Analysis
     runs-on: ubuntu-latest
+    continue-on-error: true
+    if: ${{ vars.SNYK_ENABLED == 'true' && github.event.inputs.skip_snyk != 'true' }}
     steps:
       - uses: actions/checkout@v4
 
