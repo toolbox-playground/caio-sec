@@ -44,7 +44,7 @@ RUN apt-get update && apt-get install -y \
     wget \
     vim \
     net-tools \
-    netcat \
+    netcat-openbsd \
     telnet \
     # Os pacotes acima são desnecessários para uma app Flask
     && apt-get clean
