@@ -237,8 +237,9 @@ jobs:
           echo "::group::TruffleHog - Scan Filesystem"
           echo "🔎 Analisando filesystem do repositório..."
           trufflehog filesystem \
-            --directory . \
+            . \
             --json \
+            --no-update \
             --no-verification \
             --only-verified=false \
             2>&1 | tee trufflehog-filesystem.json || true
@@ -253,6 +254,7 @@ jobs:
           trufflehog git \
             file://. \
             --json \
+            --no-update \
             --no-verification \
             --only-verified=false \
             2>&1 | tee trufflehog-git.json || true
