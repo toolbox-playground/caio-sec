@@ -505,7 +505,7 @@ jobs:
     runs-on: ubuntu-latest
     continue-on-error: true
     # Só executa se SONAR_TOKEN estiver configurado
-    if: ${{ vars.SONARQUBE_ENABLED == 'true' || secrets.SONAR_TOKEN != '' }}
+    if: ${{ vars.SONARQUBE_ENABLED == 'true' }}
 
     steps:
       - name: 📥 Checkout do código
