@@ -666,12 +666,6 @@ jobs:
     name: 🧪 Python CI - Build and Validation
     runs-on: ubuntu-latest
     needs:
-      - checkov
-      - gitleaks
-      - trufflehog
-      - trivy
-      - snyk
-      - sonarqube
       - security-summary
 
     steps:
