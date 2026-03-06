@@ -12,6 +12,8 @@
 #   4. Trivy      - Scanner de vulnerabilidades em containers e filesystems
 #   5. Snyk       - Análise de dependências e vulnerabilidades de código
 #   6. SonarQube  - Análise estática de qualidade e segurança do código (SAST)
+#   7. Python CI  - Build e validações de CI da aplicação Python
+#   8. Fake CD    - Simulação de deploy para fins didáticos
 #
 # Autor: CaioDevSecOps
 # Repositório: https://github.com/toolbox-playground/CaioDevSecOps
@@ -34,7 +36,7 @@ on:
       skip_snyk:
         description: 'Pular Snyk (requer token)'
         required: false
-        default: 'false'
+        default: false
         type: boolean
 
 # Permissões mínimas necessárias
@@ -656,3 +658,114 @@ jobs:
           echo "  📁 Relatórios salvos como Artifacts"
           echo "  📖 Consulte a documentação em docs/"
           echo "=================================================="
+
+  # ===========================================================================
+  # JOB 7: PYTHON CI - Stage de CI após validações de segurança
+  # ===========================================================================
+  python-ci:
+    name: 🧪 Python CI - Build and Validation
+    runs-on: ubuntu-latest
+    needs:
+      - checkov
+      - gitleaks
+      - trufflehog
+      - trivy
+      - snyk
+      - sonarqube
+      - security-summary
+
+    steps:
+      - name: 📥 Checkout do código
+        uses: actions/checkout@v4
+
+      - name: 🐍 Configurar Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: 📦 Instalar dependências da aplicação
+        run: |
+          echo "::group::Instalando dependências Python"
+          python -m pip install --upgrade pip
+          pip install -r examples/python/requirements.txt
+          echo "::endgroup::"
+
+      - name: ✅ Validar sintaxe Python
+        run: |
+          echo "::group::Validação de sintaxe"
+          python -m py_compile examples/python/app.py
+          echo "Sintaxe validada com sucesso."
+          echo "::endgroup::"
+
+      - name: 🧪 Executar testes (se existirem)
+        run: |
+          echo "::group::Execução de testes"
+          if [ -d tests ]; then
+            pip install pytest
+            pytest -q
+          else
+            echo "Nenhum diretório tests/ encontrado. Pulando etapa de testes automatizados."
+          fi
+          echo "::endgroup::"
+
+      - name: 🐳 Build da imagem da aplicação (CI)
+        run: |
+          echo "::group::Build da imagem Docker"
+          docker build -t caio-python-ci:latest examples/python/
+          echo "Build concluído: caio-python-ci:latest"
+          echo "::endgroup::"
+
+      - name: 📄 Gerar artefato de build CI
+        run: |
+          echo "build_status=success" > ci-build-info.txt
+          echo "image=caio-python-ci:latest" >> ci-build-info.txt
+          echo "commit=${{ github.sha }}" >> ci-build-info.txt
+          echo "branch=${{ github.ref_name }}" >> ci-build-info.txt
+
+      - name: 💾 Salvar artefato de CI
+        uses: actions/upload-artifact@v4
+        with:
+          name: python-ci-build-info
+          path: ci-build-info.txt
+          retention-days: 30
+
+  # ===========================================================================
+  # JOB 8: FAKE CD - Stage de CD simulado para fins didáticos
+  # ===========================================================================
+  fake-cd:
+    name: 🚀 Fake CD - Simulated Deployment Stage
+    runs-on: ubuntu-latest
+    needs:
+      - python-ci
+
+    steps:
+      - name: 📥 Baixar artefato do CI
+        uses: actions/download-artifact@v4
+        with:
+          name: python-ci-build-info
+
+      - name: 🚀 Simular deploy (CD fake)
+        run: |
+          echo "::group::Simulação de CD"
+          echo "Nenhum deploy real será executado."
+          echo "Objetivo: demonstrar o estágio de CD após segurança + CI."
+          echo ""
+          echo "Informações recebidas do CI:"
+          cat ci-build-info.txt
+          echo ""
+          echo "Simulando validações de release..."
+          sleep 3
+          echo "✅ CD fake concluído com sucesso."
+          echo "::endgroup::"
+
+      - name: 📝 Publicar resumo do CD fake
+        run: |
+          echo "## 🚀 Fake CD concluído" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Este stage é didático e não faz deploy real em ambiente." >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Dados recebidos do CI" >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+          cat ci-build-info.txt >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
