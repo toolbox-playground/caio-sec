@@ -379,7 +379,7 @@ jobs:
     runs-on: ubuntu-latest
     continue-on-error: true
     # Só executa se SNYK_TOKEN estiver configurado E não foi solicitado pular
-    if: ${{ vars.SNYK_ENABLED == 'true' || github.event.inputs.skip_snyk != 'true' }}
+    if: ${{ vars.SNYK_ENABLED == 'true' && github.event.inputs.skip_snyk != 'true' }}
 
     steps:
       - name: 📥 Checkout do código
