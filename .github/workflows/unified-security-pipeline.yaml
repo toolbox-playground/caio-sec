@@ -240,8 +240,7 @@ jobs:
             . \
             --json \
             --no-update \
-            --no-verification \
-            --only-verified=false \
+            --results=verified,unknown,unverified \
             2>&1 | tee trufflehog-filesystem.json || true
           echo "Scan do filesystem concluído."
           echo "::endgroup::"
@@ -255,8 +254,7 @@ jobs:
             file://. \
             --json \
             --no-update \
-            --no-verification \
-            --only-verified=false \
+            --results=verified,unknown,unverified \
             2>&1 | tee trufflehog-git.json || true
           echo "Scan do histórico concluído."
           echo "::endgroup::"
