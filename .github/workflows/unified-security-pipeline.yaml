@@ -316,14 +316,14 @@ jobs:
             --severity CRITICAL,HIGH,MEDIUM \
             --format table \
             --output trivy-image-report.txt \
-            --no-progress \
+            --quiet \
             caio-devsecops-example:latest || true
 
           # Também gera em formato JSON
           trivy image \
             --format json \
             --output trivy-image-report.json \
-            --no-progress \
+            --quiet \
             caio-devsecops-example:latest || true
 
           echo "Scan da imagem concluído."
@@ -339,7 +339,7 @@ jobs:
             --severity CRITICAL,HIGH,MEDIUM \
             --format table \
             --output trivy-fs-report.txt \
-            --no-progress \
+            --quiet \
             examples/python/ || true
           cat trivy-fs-report.txt || true
           echo "::endgroup::"
@@ -353,7 +353,7 @@ jobs:
             --severity CRITICAL,HIGH,MEDIUM \
             --format table \
             --output trivy-config-report.txt \
-            --no-progress \
+            --quiet \
             . || true
           cat trivy-config-report.txt || true
           echo "::endgroup::"
