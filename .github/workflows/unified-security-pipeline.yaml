@@ -1,0 +1,575 @@
+# =============================================================================
+# PIPELINE DE SEGURANÇA UNIFICADA - CaioDevSecOps
+# =============================================================================
+# Descrição: Pipeline que executa 5 ferramentas de segurança de forma manual,
+#            sem usar actions prontas. Todas as ferramentas são instaladas
+#            diretamente via pip, wget, curl, apt ou npm.
+#
+# Ferramentas:
+#   1. Checkov    - Análise estática de IaC (Terraform, Dockerfile, etc.)
+#   2. Gitleaks   - Detecção de segredos no histórico Git
+#   3. TruffleHog - Caça a segredos com entropia e regex avançados
+#   4. Trivy      - Scanner de vulnerabilidades em containers e filesystems
+#   5. Snyk       - Análise de dependências e vulnerabilidades de código
+#
+# Autor: CaioDevSecOps
+# Repositório: https://github.com/toolbox-playground/CaioDevSecOps
+# =============================================================================
+
+name: 🔒 Pipeline de Segurança Unificada
+
+on:
+  # Executa em pushes para a branch main
+  push:
+    branches:
+      - main
+  # Executa em pull requests para a branch main
+  pull_request:
+    branches:
+      - main
+  # Permite executar manualmente pelo GitHub UI
+  workflow_dispatch:
+    inputs:
+      skip_snyk:
+        description: 'Pular Snyk (requer token)'
+        required: false
+        default: 'false'
+        type: boolean
+
+# Permissões mínimas necessárias
+permissions:
+  contents: read
+  security-events: write
+  actions: read
+
+# Cancela execuções anteriores do mesmo PR/branch
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # ===========================================================================
+  # JOB 1: CHECKOV - Análise de Infraestrutura como Código
+  # ===========================================================================
+  checkov:
+    name: 🏗️ Checkov - IaC Security Scan
+    runs-on: ubuntu-latest
+    # Não falha o pipeline se encontrar vulnerabilidades (modo educacional)
+    continue-on-error: true
+
+    steps:
+      - name: 📥 Checkout do código
+        uses: actions/checkout@v4
+        with:
+          # Necessário para análise completa do histórico
+          fetch-depth: 0
+
+      - name: 🐍 Configurar Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      # Instalação manual do Checkov via pip (sem usar action pronta)
+      - name: 📦 Instalar Checkov manualmente via pip
+        run: |
+          echo "::group::Instalando Checkov"
+          python -m pip install --upgrade pip
+          pip install checkov
+          echo "Versão instalada:"
+          checkov --version
+          echo "::endgroup::"
+
+      # Scan do Terraform com Checkov
+      - name: 🔍 Checkov - Scan Terraform (IaC)
+        run: |
+          echo "::group::Checkov - Análise Terraform"
+          echo "📁 Escaneando: examples/terraform/"
+          checkov \
+            --directory examples/terraform \
+            --output cli \
+            --output sarif \
+            --output-file-path . \
+            --soft-fail \
+            --compact || true
+          echo "::endgroup::"
+
+      # Scan do Dockerfile com Checkov
+      - name: 🐳 Checkov - Scan Dockerfile
+        run: |
+          echo "::group::Checkov - Análise Dockerfile"
+          echo "📁 Escaneando: examples/python/Dockerfile"
+          checkov \
+            --file examples/python/Dockerfile \
+            --framework dockerfile \
+            --output cli \
+            --soft-fail \
+            --compact || true
+          echo "::endgroup::"
+
+      # Scan geral de toda a estrutura do repositório
+      - name: 🌐 Checkov - Scan completo do repositório
+        run: |
+          echo "::group::Checkov - Scan Completo"
+          echo "📁 Escaneando repositório completo..."
+          checkov \
+            --directory . \
+            --skip-path .github \
+            --output cli \
+            --soft-fail \
+            --compact \
+            --quiet || true
+          echo "::endgroup::"
+
+      # Salva relatório como artefato para download
+      - name: 💾 Salvar relatório Checkov
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: checkov-results
+          path: |
+            results_sarif.sarif
+            results_cli.txt
+          retention-days: 30
+
+  # ===========================================================================
+  # JOB 2: GITLEAKS - Detecção de Segredos no Histórico Git
+  # ===========================================================================
+  gitleaks:
+    name: 🔑 Gitleaks - Secret Detection
+    runs-on: ubuntu-latest
+    continue-on-error: true
+
+    steps:
+      - name: 📥 Checkout do código
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      # Instalação manual do Gitleaks via wget/tar (sem usar action pronta)
+      - name: 📦 Instalar Gitleaks manualmente via wget
+        run: |
+          echo "::group::Instalando Gitleaks"
+
+          # Define a versão desejada do Gitleaks
+          GITLEAKS_VERSION="8.18.4"
+
+          echo "⬇️  Baixando Gitleaks v${GITLEAKS_VERSION}..."
+          wget -q "https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz" \
+            -O /tmp/gitleaks.tar.gz
+
+          echo "📦 Extraindo binário..."
+          tar -xzf /tmp/gitleaks.tar.gz -C /tmp/
+
+          echo "🚀 Instalando em /usr/local/bin/..."
+          sudo mv /tmp/gitleaks /usr/local/bin/gitleaks
+          sudo chmod +x /usr/local/bin/gitleaks
+
+          echo "✅ Versão instalada:"
+          gitleaks version
+          echo "::endgroup::"
+
+      # Detecta segredos no histórico completo do Git
+      - name: 🔍 Gitleaks - Detect (histórico Git)
+        run: |
+          echo "::group::Gitleaks - Detecção no Histórico Git"
+          echo "🔎 Analisando histórico completo do repositório..."
+          gitleaks detect \
+            --source . \
+            --report-format sarif \
+            --report-path gitleaks-report.sarif \
+            --verbose \
+            --no-git=false || true
+          echo "::endgroup::"
+
+      # Detecta segredos em arquivos não commitados (staged)
+      - name: 🕵️ Gitleaks - Detect (arquivos atuais)
+        run: |
+          echo "::group::Gitleaks - Detecção em Arquivos Atuais"
+          echo "🔎 Analisando arquivos atuais (no-git mode)..."
+          gitleaks detect \
+            --source . \
+            --no-git \
+            --report-format json \
+            --report-path gitleaks-nogit-report.json \
+            --verbose || true
+          echo "::endgroup::"
+
+      - name: 💾 Salvar relatório Gitleaks
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: gitleaks-results
+          path: |
+            gitleaks-report.sarif
+            gitleaks-nogit-report.json
+          retention-days: 30
+
+  # ===========================================================================
+  # JOB 3: TRUFFLEHOG - Caça a Segredos com Verificação
+  # ===========================================================================
+  trufflehog:
+    name: 🐷 TruffleHog - Secret Hunter
+    runs-on: ubuntu-latest
+    continue-on-error: true
+
+    steps:
+      - name: 📥 Checkout do código
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      # Instalação manual do TruffleHog via script (sem usar action pronta)
+      - name: 📦 Instalar TruffleHog manualmente via curl
+        run: |
+          echo "::group::Instalando TruffleHog"
+
+          echo "⬇️  Baixando e instalando TruffleHog via script oficial..."
+          curl -sSfL https://raw.githubusercontent.com/trufflesecurity/trufflehog/main/scripts/install.sh \
+            | sudo sh -s -- -b /usr/local/bin
+
+          echo "✅ Versão instalada:"
+          trufflehog --version
+          echo "::endgroup::"
+
+      # Scan do filesystem local
+      - name: 🔍 TruffleHog - Scan do Filesystem
+        run: |
+          echo "::group::TruffleHog - Scan Filesystem"
+          echo "🔎 Analisando filesystem do repositório..."
+          trufflehog filesystem \
+            --directory . \
+            --json \
+            --no-verification \
+            --only-verified=false \
+            2>&1 | tee trufflehog-filesystem.json || true
+          echo "Scan do filesystem concluído."
+          echo "::endgroup::"
+
+      # Scan do histórico Git
+      - name: 🔍 TruffleHog - Scan do histórico Git
+        run: |
+          echo "::group::TruffleHog - Scan Histórico Git"
+          echo "🔎 Analisando histórico completo do Git..."
+          trufflehog git \
+            file://. \
+            --json \
+            --no-verification \
+            --only-verified=false \
+            2>&1 | tee trufflehog-git.json || true
+          echo "Scan do histórico concluído."
+          echo "::endgroup::"
+
+      - name: 💾 Salvar relatório TruffleHog
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: trufflehog-results
+          path: |
+            trufflehog-filesystem.json
+            trufflehog-git.json
+          retention-days: 30
+
+  # ===========================================================================
+  # JOB 4: TRIVY - Scanner de Vulnerabilidades em Containers
+  # ===========================================================================
+  trivy:
+    name: 🛡️ Trivy - Vulnerability Scanner
+    runs-on: ubuntu-latest
+    continue-on-error: true
+
+    steps:
+      - name: 📥 Checkout do código
+        uses: actions/checkout@v4
+
+      # Instalação manual do Trivy via apt (sem usar action pronta)
+      - name: 📦 Instalar Trivy manualmente via apt
+        run: |
+          echo "::group::Instalando Trivy"
+
+          echo "⬇️  Adicionando repositório oficial do Trivy..."
+          sudo apt-get install -y wget apt-transport-https gnupg lsb-release
+
+          # Adiciona chave GPG oficial
+          wget -qO - https://aquasecurity.github.io/trivy-repo/deb/public.key \
+            | gpg --dearmor \
+            | sudo tee /usr/share/keyrings/trivy.gpg > /dev/null
+
+          # Adiciona repositório apt
+          echo "deb [signed-by=/usr/share/keyrings/trivy.gpg] https://aquasecurity.github.io/trivy-repo/deb $(lsb_release -sc) main" \
+            | sudo tee /etc/apt/sources.list.d/trivy.list
+
+          # Instala via apt
+          sudo apt-get update -qq
+          sudo apt-get install -y trivy
+
+          echo "✅ Versão instalada:"
+          trivy --version
+          echo "::endgroup::"
+
+      # Constrói a imagem Docker para análise
+      - name: 🐳 Build da imagem Docker de exemplo
+        run: |
+          echo "::group::Build Docker"
+          echo "🔨 Construindo imagem vulnerável de exemplo..."
+          docker build \
+            -t caio-devsecops-example:latest \
+            examples/python/ \
+            --no-cache || true
+          echo "Build concluído."
+          echo "::endgroup::"
+
+      # Scan da imagem Docker com Trivy
+      - name: 🔍 Trivy - Scan da imagem Docker
+        run: |
+          echo "::group::Trivy - Scan Imagem Docker"
+          echo "🔎 Analisando imagem Docker por vulnerabilidades..."
+          trivy image \
+            --severity CRITICAL,HIGH,MEDIUM \
+            --format table \
+            --output trivy-image-report.txt \
+            --no-progress \
+            caio-devsecops-example:latest || true
+
+          # Também gera em formato JSON
+          trivy image \
+            --format json \
+            --output trivy-image-report.json \
+            --no-progress \
+            caio-devsecops-example:latest || true
+
+          echo "Scan da imagem concluído."
+          cat trivy-image-report.txt || true
+          echo "::endgroup::"
+
+      # Scan do filesystem com Trivy
+      - name: 🔍 Trivy - Scan do Filesystem
+        run: |
+          echo "::group::Trivy - Scan Filesystem"
+          echo "🔎 Analisando dependências do projeto..."
+          trivy filesystem \
+            --severity CRITICAL,HIGH,MEDIUM \
+            --format table \
+            --output trivy-fs-report.txt \
+            --no-progress \
+            examples/python/ || true
+          cat trivy-fs-report.txt || true
+          echo "::endgroup::"
+
+      # Scan de configurações IaC com Trivy
+      - name: 🔍 Trivy - Scan de Configurações (IaC)
+        run: |
+          echo "::group::Trivy - Scan IaC Config"
+          echo "🔎 Analisando configurações de infraestrutura..."
+          trivy config \
+            --severity CRITICAL,HIGH,MEDIUM \
+            --format table \
+            --output trivy-config-report.txt \
+            --no-progress \
+            . || true
+          cat trivy-config-report.txt || true
+          echo "::endgroup::"
+
+      - name: 💾 Salvar relatórios Trivy
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: trivy-results
+          path: |
+            trivy-image-report.txt
+            trivy-image-report.json
+            trivy-fs-report.txt
+            trivy-config-report.txt
+          retention-days: 30
+
+  # ===========================================================================
+  # JOB 5: SNYK - Análise de Dependências e Código
+  # ===========================================================================
+  snyk:
+    name: 🐍 Snyk - Dependency & Code Analysis
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    # Só executa se SNYK_TOKEN estiver configurado E não foi solicitado pular
+    if: ${{ vars.SNYK_ENABLED == 'true' || github.event.inputs.skip_snyk != 'true' }}
+
+    steps:
+      - name: 📥 Checkout do código
+        uses: actions/checkout@v4
+
+      - name: 🐍 Configurar Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: 🟢 Configurar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      # Instalação manual do Snyk via npm (sem usar action pronta)
+      - name: 📦 Instalar Snyk manualmente via npm
+        run: |
+          echo "::group::Instalando Snyk"
+          echo "⬇️  Instalando Snyk CLI via npm..."
+          npm install -g snyk
+          echo "✅ Versão instalada:"
+          snyk --version
+          echo "::endgroup::"
+
+      # Autenticação com SNYK_TOKEN (deve ser configurado nos secrets do repo)
+      - name: 🔐 Autenticar no Snyk
+        run: |
+          echo "::group::Autenticação Snyk"
+          if [ -z "$SNYK_TOKEN" ]; then
+            echo "⚠️  SNYK_TOKEN não configurado. Pulando autenticação."
+            echo "   Configure o secret SNYK_TOKEN no repositório para habilitar o Snyk."
+            echo "   Acesse: https://app.snyk.io/account para obter seu token."
+            exit 0
+          fi
+          snyk auth $SNYK_TOKEN
+          echo "✅ Autenticação bem-sucedida!"
+          echo "::endgroup::"
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+
+      # Instala dependências Python para análise
+      - name: 📦 Instalar dependências Python de exemplo
+        run: |
+          echo "::group::Instalando dependências Python"
+          pip install -r examples/python/requirements.txt || true
+          echo "::endgroup::"
+
+      # Análise de dependências Open Source com Snyk
+      - name: 🔍 Snyk - Análise de Dependências Open Source
+        run: |
+          echo "::group::Snyk - Open Source Dependencies"
+          if [ -z "$SNYK_TOKEN" ]; then
+            echo "⚠️  SNYK_TOKEN não configurado. Pulando scan Snyk."
+          else
+            echo "🔎 Analisando dependências Python..."
+            snyk test \
+              --file=examples/python/requirements.txt \
+              --package-manager=pip \
+              --json \
+              --json-file-output=snyk-dependencies-report.json || true
+            snyk test \
+              --file=examples/python/requirements.txt \
+              --package-manager=pip || true
+          fi
+          echo "::endgroup::"
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+
+      # Análise de container com Snyk
+      - name: 🐳 Snyk - Análise do Container Docker
+        run: |
+          echo "::group::Snyk - Container Analysis"
+          if [ -z "$SNYK_TOKEN" ]; then
+            echo "⚠️  SNYK_TOKEN não configurado. Pulando scan de container."
+          else
+            echo "🐳 Construindo imagem para análise Snyk..."
+            docker build -t caio-snyk-test:latest examples/python/ || true
+            echo "🔎 Analisando imagem Docker com Snyk..."
+            snyk container test \
+              caio-snyk-test:latest \
+              --file=examples/python/Dockerfile \
+              --json \
+              --json-file-output=snyk-container-report.json || true
+          fi
+          echo "::endgroup::"
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+
+      # Análise de IaC com Snyk
+      - name: 🏗️ Snyk - Análise de IaC (Terraform)
+        run: |
+          echo "::group::Snyk - IaC Analysis"
+          if [ -z "$SNYK_TOKEN" ]; then
+            echo "⚠️  SNYK_TOKEN não configurado. Pulando scan de IaC."
+          else
+            echo "🔎 Analisando Terraform com Snyk IaC..."
+            snyk iac test \
+              examples/terraform/ \
+              --json \
+              --json-file-output=snyk-iac-report.json || true
+          fi
+          echo "::endgroup::"
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+
+      - name: 💾 Salvar relatórios Snyk
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: snyk-results
+          path: |
+            snyk-dependencies-report.json
+            snyk-container-report.json
+            snyk-iac-report.json
+          retention-days: 30
+
+  # ===========================================================================
+  # JOB FINAL: RESUMO DA PIPELINE
+  # ===========================================================================
+  security-summary:
+    name: 📊 Resumo da Pipeline de Segurança
+    runs-on: ubuntu-latest
+    # Executa sempre, mesmo se jobs anteriores falharem
+    if: always()
+    needs:
+      - checkov
+      - gitleaks
+      - trufflehog
+      - trivy
+      - snyk
+
+    steps:
+      - name: 📥 Checkout do código
+        uses: actions/checkout@v4
+
+      # Gera o resumo final da execução
+      - name: 📋 Gerar Resumo da Execução
+        run: |
+          echo "## 🔒 Resumo da Pipeline de Segurança Unificada" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Pipeline executada em: $(date +'%d/%m/%Y às %H:%M:%S UTC')" >> $GITHUB_STEP_SUMMARY
+          echo "Commit: \`${{ github.sha }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "Branch: \`${{ github.ref_name }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 🛠️ Ferramentas Executadas" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Ferramenta | Tipo | Status | Descrição |" >> $GITHUB_STEP_SUMMARY
+          echo "|------------|------|--------|-----------|" >> $GITHUB_STEP_SUMMARY
+          echo "| 🏗️ Checkov | IaC Analysis | ${{ needs.checkov.result }} | Análise de Terraform e Dockerfile |" >> $GITHUB_STEP_SUMMARY
+          echo "| 🔑 Gitleaks | Secret Detection | ${{ needs.gitleaks.result }} | Detecção de segredos no Git |" >> $GITHUB_STEP_SUMMARY
+          echo "| 🐷 TruffleHog | Secret Hunter | ${{ needs.trufflehog.result }} | Caça a segredos com verificação |" >> $GITHUB_STEP_SUMMARY
+          echo "| 🛡️ Trivy | Vuln Scanner | ${{ needs.trivy.result }} | Scan de containers e dependências |" >> $GITHUB_STEP_SUMMARY
+          echo "| 🐍 Snyk | Code & Deps | ${{ needs.snyk.result }} | Análise de código e dependências |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 📝 Observações" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ Esta pipeline usa **continue-on-error: true** para fins didáticos" >> $GITHUB_STEP_SUMMARY
+          echo "- ⚠️ Os exemplos contêm vulnerabilidades **intencionais** para demonstração" >> $GITHUB_STEP_SUMMARY
+          echo "- 📁 Relatórios completos disponíveis em **Artifacts** desta execução" >> $GITHUB_STEP_SUMMARY
+          echo "- 🔐 Para habilitar Snyk, configure o secret **SNYK_TOKEN** no repositório" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 📚 Documentação" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- [Checkov](docs/CHECKOV.md) | [Gitleaks](docs/GITLEAKS.md) | [TruffleHog](docs/TRUFFLEHOG.md) | [Trivy](docs/TRIVY.md) | [Snyk](docs/SNYK.md)" >> $GITHUB_STEP_SUMMARY
+
+      - name: ✅ Pipeline Concluída com Sucesso
+        run: |
+          echo "=================================================="
+          echo "  🔒 PIPELINE DE SEGURANÇA UNIFICADA - CONCLUÍDA  "
+          echo "=================================================="
+          echo ""
+          echo "  Ferramentas executadas:"
+          echo "  ✅ Checkov   - ${{ needs.checkov.result }}"
+          echo "  ✅ Gitleaks  - ${{ needs.gitleaks.result }}"
+          echo "  ✅ TruffleHog - ${{ needs.trufflehog.result }}"
+          echo "  ✅ Trivy     - ${{ needs.trivy.result }}"
+          echo "  ✅ Snyk      - ${{ needs.snyk.result }}"
+          echo ""
+          echo "  📁 Relatórios salvos como Artifacts"
+          echo "  📖 Consulte a documentação em docs/"
+          echo "=================================================="

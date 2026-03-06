@@ -1,0 +1,140 @@
+# ========================================
+# CaioDevSecOps — .gitignore
+# ========================================
+
+# ----------------------------------------
+# Python
+# ----------------------------------------
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+dist/
+*.egg-info/
+*.egg
+.eggs/
+pip-wheel-metadata/
+.venv/
+venv/
+env/
+.env
+!examples/secrets/vulnerable-sample.env
+
+# ----------------------------------------
+# Node.js
+# ----------------------------------------
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.npm/
+.pnpm-store/
+package-lock.json
+
+# ----------------------------------------
+# Terraform
+# ----------------------------------------
+.terraform/
+.terraform.lock.hcl
+*.tfstate
+*.tfstate.backup
+*.tfplan
+*.tfvars
+!examples/terraform/terraform.tfvars.example
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+crash.log
+crash.*.log
+
+# ----------------------------------------
+# Docker
+# ----------------------------------------
+.docker/
+.dockerignore.local
+
+# ----------------------------------------
+# IDEs e Editores
+# ----------------------------------------
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.project
+.classpath
+.settings/
+*.iml
+.DS_Store
+
+# ----------------------------------------
+# Sistema Operacional
+# ----------------------------------------
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+desktop.ini
+
+# ----------------------------------------
+# Relatórios de Segurança (gerados localmente)
+# ----------------------------------------
+*.sarif
+*-report.json
+*-report.txt
+trivy-*.txt
+trivy-*.json
+gitleaks-*.json
+gitleaks-report.*
+trufflehog-*.json
+snyk-*.json
+snyk-*.html
+checkov-*.json
+checkov-*.xml
+checkov-report.*
+security-results/
+
+# ----------------------------------------
+# Logs
+# ----------------------------------------
+*.log
+logs/
+*.log.*
+
+# ----------------------------------------
+# Cobertura de Testes
+# ----------------------------------------
+.coverage
+htmlcov/
+.pytest_cache/
+coverage.xml
+*.cover
+.hypothesis/
+
+# ----------------------------------------
+# Credenciais e Segredos Reais
+# ----------------------------------------
+.env.local
+.env.*.local
+secrets.yaml
+secrets.json
+*.pem
+*.key
+*.p12
+*.pfx
+!examples/secrets/vulnerable-sample.env
+
+# ----------------------------------------
+# Temporários e Cache
+# ----------------------------------------
+*.tmp
+*.temp
+.cache/
+tmp/
+temp/
