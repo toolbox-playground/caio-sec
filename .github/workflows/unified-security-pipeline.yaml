@@ -320,6 +320,7 @@ jobs:
         run: |
           echo "::group::Trivy - Scan Imagem Docker"
           echo "🔎 Analisando imagem Docker por vulnerabilidades..."
+          set +e
           trivy image \
             --exit-code 1 \
             --severity CRITICAL,HIGH,MEDIUM \
@@ -327,6 +328,8 @@ jobs:
             --output trivy-image-report.txt \
             --quiet \
             caio-devsecops-example:latest
+          trivy_image_exit=$?
+          set -e
 
           # Também gera em formato JSON
           trivy image \
@@ -337,7 +340,13 @@ jobs:
 
           echo "Scan da imagem concluído."
           cat trivy-image-report.txt
+          if [ "$trivy_image_exit" -eq 1 ]; then
+            echo "⚠️ Trivy encontrou vulnerabilidades na imagem (exit code 1 esperado para achados)."
+          elif [ "$trivy_image_exit" -ne 0 ]; then
+            echo "❌ Trivy falhou ao executar scan da imagem (exit code: $trivy_image_exit)."
+          fi
           echo "::endgroup::"
+          exit "$trivy_image_exit"
 
       # Scan do filesystem com Trivy
       - name: 🔍 Trivy - Scan do Filesystem
@@ -345,6 +354,7 @@ jobs:
         run: |
           echo "::group::Trivy - Scan Filesystem"
           echo "🔎 Analisando dependências do projeto..."
+          set +e
           trivy filesystem \
             --exit-code 1 \
             --severity CRITICAL,HIGH,MEDIUM \
@@ -352,6 +362,8 @@ jobs:
             --output trivy-fs-report.txt \
             --quiet \
             examples/python/
+          trivy_fs_exit=$?
+          set -e
 
           trivy filesystem \
             --format json \
@@ -359,7 +371,13 @@ jobs:
             --quiet \
             examples/python/
           cat trivy-fs-report.txt
+          if [ "$trivy_fs_exit" -eq 1 ]; then
+            echo "⚠️ Trivy encontrou vulnerabilidades no filesystem (exit code 1 esperado para achados)."
+          elif [ "$trivy_fs_exit" -ne 0 ]; then
+            echo "❌ Trivy falhou ao executar scan do filesystem (exit code: $trivy_fs_exit)."
+          fi
           echo "::endgroup::"
+          exit "$trivy_fs_exit"
 
       # Scan de configurações IaC com Trivy
       - name: 🔍 Trivy - Scan de Configurações (IaC)
@@ -367,6 +385,7 @@ jobs:
         run: |
           echo "::group::Trivy - Scan IaC Config"
           echo "🔎 Analisando configurações de infraestrutura..."
+          set +e
           trivy config \
             --exit-code 1 \
             --severity CRITICAL,HIGH,MEDIUM \
@@ -374,6 +393,8 @@ jobs:
             --output trivy-config-report.txt \
             --quiet \
             .
+          trivy_config_exit=$?
+          set -e
 
           trivy config \
             --format json \
@@ -381,7 +402,13 @@ jobs:
             --quiet \
             .
           cat trivy-config-report.txt
+          if [ "$trivy_config_exit" -eq 1 ]; then
+            echo "⚠️ Trivy encontrou misconfigurations/vulnerabilidades no IaC (exit code 1 esperado para achados)."
+          elif [ "$trivy_config_exit" -ne 0 ]; then
+            echo "❌ Trivy falhou ao executar scan de configuração (exit code: $trivy_config_exit)."
+          fi
           echo "::endgroup::"
+          exit "$trivy_config_exit"
 
       - name: 💾 Salvar relatórios Trivy
         if: always()
