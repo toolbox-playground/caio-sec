@@ -857,6 +857,8 @@ jobs:
       - gitleaks
       - trufflehog
       - trivy
+      - snyk
+      - sonarqube
 
     steps:
       - name: 📥 Checkout do código
