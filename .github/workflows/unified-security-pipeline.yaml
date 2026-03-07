@@ -93,7 +93,6 @@ jobs:
             --output cli \
             --output sarif \
             --output-file-path . \
-            --soft-fail \
             --compact
           echo "::endgroup::"
 
@@ -106,7 +105,6 @@ jobs:
             --file examples/python/Dockerfile \
             --framework dockerfile \
             --output cli \
-            --soft-fail \
             --compact
           echo "::endgroup::"
 
@@ -119,7 +117,6 @@ jobs:
             --directory . \
             --skip-path .github \
             --output cli \
-            --soft-fail \
             --compact \
             --quiet
           echo "::endgroup::"
@@ -238,6 +235,7 @@ jobs:
       - name: 🔍 TruffleHog - Scan do Filesystem
         run: |
           echo "::group::TruffleHog - Scan Filesystem"
+          set -o pipefail
           echo "🔎 Analisando filesystem do repositório..."
           trufflehog filesystem \
             . \
@@ -252,6 +250,7 @@ jobs:
       - name: 🔍 TruffleHog - Scan do histórico Git
         run: |
           echo "::group::TruffleHog - Scan Histórico Git"
+          set -o pipefail
           echo "🔎 Analisando histórico completo do Git..."
           trufflehog git \
             file://. \
@@ -316,6 +315,7 @@ jobs:
           echo "::group::Trivy - Scan Imagem Docker"
           echo "🔎 Analisando imagem Docker por vulnerabilidades..."
           trivy image \
+            --exit-code 1 \
             --severity CRITICAL,HIGH,MEDIUM \
             --format table \
             --output trivy-image-report.txt \
@@ -339,6 +339,7 @@ jobs:
           echo "::group::Trivy - Scan Filesystem"
           echo "🔎 Analisando dependências do projeto..."
           trivy filesystem \
+            --exit-code 1 \
             --severity CRITICAL,HIGH,MEDIUM \
             --format table \
             --output trivy-fs-report.txt \
@@ -353,6 +354,7 @@ jobs:
           echo "::group::Trivy - Scan IaC Config"
           echo "🔎 Analisando configurações de infraestrutura..."
           trivy config \
+            --exit-code 1 \
             --severity CRITICAL,HIGH,MEDIUM \
             --format table \
             --output trivy-config-report.txt \
