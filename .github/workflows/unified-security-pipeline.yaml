@@ -638,109 +638,200 @@ jobs:
       - name: 📥 Checkout do código
         uses: actions/checkout@v4
 
+      - name: 📦 Baixar artifacts dos scanners
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
       # Gera o resumo final da execução
       - name: 📋 Gerar Resumo da Execução
         run: |
-          STATUS_CHECKOV="${{ needs.checkov.result }}"
-          STATUS_GITLEAKS="${{ needs.gitleaks.result }}"
-          STATUS_TRUFFLEHOG="${{ needs.trufflehog.result }}"
-          STATUS_TRIVY="${{ needs.trivy.result }}"
-          STATUS_SNYK="${{ needs.snyk.result }}"
-          STATUS_SONARQUBE="${{ needs.sonarqube.result }}"
+          yes_no_for_count() {
+            local count="$1"
+            if [ "$count" -gt 0 ]; then
+              echo "SIM"
+            else
+              echo "NÃO"
+            fi
+          }
 
-          icon_for_status() {
-            case "$1" in
-              success) echo "✅ success" ;;
-              failure) echo "❌ failure" ;;
-              skipped) echo "⏭️ skipped" ;;
-              cancelled) echo "🚫 cancelled" ;;
-              *) echo "❔ $1" ;;
-            esac
+          compact_or_default() {
+            local text="$1"
+            local default_text="$2"
+            if [ -z "$text" ] || [ "$text" = "null" ]; then
+              echo "$default_text"
+            else
+              echo "$text"
+            fi
           }
 
           count_checkov=0
+          summary_checkov="Sem findings no artefato"
           if [ -f artifacts/checkov-results/results_sarif.sarif ]; then
             count_checkov=$(jq '[.runs[].results[]?] | length' artifacts/checkov-results/results_sarif.sarif 2>/dev/null || echo 0)
+            summary_checkov=$(jq -r '
+              [.runs[].results[]?.ruleId // "unknown-rule"]
+              | group_by(.)
+              | map({rule: .[0], count: length})
+              | sort_by(-.count)
+              | .[:3]
+              | map("\(.rule) (\(.count)x)")
+              | join("; ")
+            ' artifacts/checkov-results/results_sarif.sarif 2>/dev/null)
+            summary_checkov=$(compact_or_default "$summary_checkov" "Sem findings no artefato")
           fi
 
           count_gitleaks_git=0
+          summary_gitleaks_git=""
           if [ -f artifacts/gitleaks-results/gitleaks-report.sarif ]; then
             count_gitleaks_git=$(jq '[.runs[].results[]?] | length' artifacts/gitleaks-results/gitleaks-report.sarif 2>/dev/null || echo 0)
+            summary_gitleaks_git=$(jq -r '
+              [.runs[].results[]?.ruleId // "unknown-rule"]
+              | group_by(.)
+              | map({rule: .[0], count: length})
+              | sort_by(-.count)
+              | .[:2]
+              | map("\(.rule) (\(.count)x)")
+              | join("; ")
+            ' artifacts/gitleaks-results/gitleaks-report.sarif 2>/dev/null)
           fi
+
           count_gitleaks_dir=0
+          summary_gitleaks_dir=""
           if [ -f artifacts/gitleaks-results/gitleaks-dir-report.json ]; then
             count_gitleaks_dir=$(jq 'if type=="array" then length elif has("leaks") then (.leaks|length) else 0 end' artifacts/gitleaks-results/gitleaks-dir-report.json 2>/dev/null || echo 0)
+            summary_gitleaks_dir=$(jq -r '
+              (if type=="array" then . elif has("leaks") then .leaks else [] end)
+              | map(.RuleID // .Description // "unknown-rule")
+              | group_by(.)
+              | map({rule: .[0], count: length})
+              | sort_by(-.count)
+              | .[:2]
+              | map("\(.rule) (\(.count)x)")
+              | join("; ")
+            ' artifacts/gitleaks-results/gitleaks-dir-report.json 2>/dev/null)
           fi
+
           count_gitleaks=$((count_gitleaks_git + count_gitleaks_dir))
+          summary_gitleaks=$(compact_or_default "${summary_gitleaks_git}; ${summary_gitleaks_dir}" "Sem findings no artefato")
 
           count_trufflehog_fs=0
+          summary_trufflehog_fs=""
           if [ -f artifacts/trufflehog-results/trufflehog-filesystem.json ]; then
-            count_trufflehog_fs=$(jq -s '[.[] | select(has("DetectorName"))] | length' artifacts/trufflehog-results/trufflehog-filesystem.json 2>/dev/null || echo 0)
+            grep -E '^\{' artifacts/trufflehog-results/trufflehog-filesystem.json > /tmp/trufflehog-fs-valid.jsonl || true
+            count_trufflehog_fs=$(jq -s 'map(select(has("DetectorName"))) | length' /tmp/trufflehog-fs-valid.jsonl 2>/dev/null || echo 0)
+            summary_trufflehog_fs=$(jq -r -s '
+              map(select(has("DetectorName")) | .DetectorName)
+              | group_by(.)
+              | map({detector: .[0], count: length})
+              | sort_by(-.count)
+              | .[:3]
+              | map("\(.detector) (\(.count)x)")
+              | join("; ")
+            ' /tmp/trufflehog-fs-valid.jsonl 2>/dev/null)
           fi
+
           count_trufflehog_git=0
+          summary_trufflehog_git=""
           if [ -f artifacts/trufflehog-results/trufflehog-git.json ]; then
-            count_trufflehog_git=$(jq -s '[.[] | select(has("DetectorName"))] | length' artifacts/trufflehog-results/trufflehog-git.json 2>/dev/null || echo 0)
+            grep -E '^\{' artifacts/trufflehog-results/trufflehog-git.json > /tmp/trufflehog-git-valid.jsonl || true
+            count_trufflehog_git=$(jq -s 'map(select(has("DetectorName"))) | length' /tmp/trufflehog-git-valid.jsonl 2>/dev/null || echo 0)
+            summary_trufflehog_git=$(jq -r -s '
+              map(select(has("DetectorName")) | .DetectorName)
+              | group_by(.)
+              | map({detector: .[0], count: length})
+              | sort_by(-.count)
+              | .[:3]
+              | map("\(.detector) (\(.count)x)")
+              | join("; ")
+            ' /tmp/trufflehog-git-valid.jsonl 2>/dev/null)
           fi
+
           count_trufflehog=$((count_trufflehog_fs + count_trufflehog_git))
+          summary_trufflehog=$(compact_or_default "${summary_trufflehog_fs}; ${summary_trufflehog_git}" "Sem findings no artefato")
 
           count_trivy_image=0
+          summary_trivy_image=""
           if [ -f artifacts/trivy-results/trivy-image-report.json ]; then
             count_trivy_image=$(jq '[.. | objects | .Vulnerabilities? // empty | .[]?] | length' artifacts/trivy-results/trivy-image-report.json 2>/dev/null || echo 0)
+            summary_trivy_image=$(jq -r '
+              [.. | objects | .Vulnerabilities? // empty | .[]? | .Severity // "UNKNOWN"]
+              | group_by(.)
+              | map({sev: .[0], count: length})
+              | sort_by(-.count)
+              | .[:4]
+              | map("\(.sev): \(.count)")
+              | join(", ")
+            ' artifacts/trivy-results/trivy-image-report.json 2>/dev/null)
           fi
+
           count_trivy_fs=0
+          summary_trivy_fs=""
           if [ -f artifacts/trivy-results/trivy-fs-report.json ]; then
             count_trivy_fs=$(jq '[.. | objects | .Vulnerabilities? // empty | .[]?] | length' artifacts/trivy-results/trivy-fs-report.json 2>/dev/null || echo 0)
+            summary_trivy_fs=$(jq -r '
+              [.. | objects | .Vulnerabilities? // empty | .[]? | .Severity // "UNKNOWN"]
+              | group_by(.)
+              | map({sev: .[0], count: length})
+              | sort_by(-.count)
+              | .[:4]
+              | map("\(.sev): \(.count)")
+              | join(", ")
+            ' artifacts/trivy-results/trivy-fs-report.json 2>/dev/null)
           fi
+
           count_trivy_config=0
+          summary_trivy_config=""
           if [ -f artifacts/trivy-results/trivy-config-report.json ]; then
             count_trivy_config=$(jq '[.. | objects | .Misconfigurations? // empty | .[]?] | length' artifacts/trivy-results/trivy-config-report.json 2>/dev/null || echo 0)
+            summary_trivy_config=$(jq -r '
+              [.. | objects | .Misconfigurations? // empty | .[]? | .Severity // "UNKNOWN"]
+              | group_by(.)
+              | map({sev: .[0], count: length})
+              | sort_by(-.count)
+              | .[:4]
+              | map("\(.sev): \(.count)")
+              | join(", ")
+            ' artifacts/trivy-results/trivy-config-report.json 2>/dev/null)
           fi
+
           count_trivy=$((count_trivy_image + count_trivy_fs + count_trivy_config))
+          summary_trivy=$(compact_or_default "img[${summary_trivy_image}] fs[${summary_trivy_fs}] cfg[${summary_trivy_config}]" "Sem findings no artefato")
 
-          if [ "$STATUS_SNYK" = "skipped" ]; then
-            count_snyk="n/a"
-          else
-            count_snyk="ver artifacts"
+          snyk_line="Não executado (faltando token/flag)"
+          if [ "${{ needs.snyk.result }}" != "skipped" ]; then
+            snyk_line="Executado (detalhes em artifact snyk-results)"
           fi
 
-          if [ "$STATUS_SONARQUBE" = "skipped" ]; then
-            count_sonarqube="n/a"
-          else
-            count_sonarqube="ver quality gate"
+          sonarqube_line="Não executado (faltando configuração)"
+          if [ "${{ needs.sonarqube.result }}" != "skipped" ]; then
+            sonarqube_line="Executado (detalhes via quality gate)"
           fi
 
           {
-            echo "## 🔒 Resumo da Pipeline de Segurança Unificada"
+            echo "## 🔒 Resumo de Achados da Pipeline"
             echo ""
-            echo "Pipeline executada em: $(date +'%d/%m/%Y às %H:%M:%S UTC')"
+            echo "Executada em: $(date +'%d/%m/%Y às %H:%M:%S UTC')"
             echo "Commit: \`${{ github.sha }}\`"
             echo "Branch: \`${{ github.ref_name }}\`"
             echo ""
-            echo "### 🧾 Resultado Consolidado"
+            echo "### 📊 Tabela única de resultados"
             echo ""
-            echo "| Ferramenta | Status real | Achados (qtde) | Resumo |"
+            echo "| Ferramenta | Encontrou issues? | Quantidade | Resumo dos achados |"
             echo "|---|---|---:|---|"
-            echo "| 🏗️ Checkov | $(icon_for_status "$STATUS_CHECKOV") | ${count_checkov} | IaC (Terraform/Dockerfile/repo) |"
-            echo "| 🔑 Gitleaks | $(icon_for_status "$STATUS_GITLEAKS") | ${count_gitleaks} | Segredos em git + filesystem |"
-            echo "| 🐷 TruffleHog | $(icon_for_status "$STATUS_TRUFFLEHOG") | ${count_trufflehog} | Secrets (verified/unknown/unverified) |"
-            echo "| 🛡️ Trivy | $(icon_for_status "$STATUS_TRIVY") | ${count_trivy} | Vulnerabilidades + misconfigs |"
-            echo "| 🐍 Snyk | $(icon_for_status "$STATUS_SNYK") | ${count_snyk} | Dependências, container e IaC |"
-            echo "| 🔵 SonarQube | $(icon_for_status "$STATUS_SONARQUBE") | ${count_sonarqube} | SAST e quality gate |"
+            echo "| 🏗️ Checkov | $(yes_no_for_count "$count_checkov") | ${count_checkov} | ${summary_checkov} |"
+            echo "| 🔑 Gitleaks | $(yes_no_for_count "$count_gitleaks") | ${count_gitleaks} | ${summary_gitleaks} |"
+            echo "| 🐷 TruffleHog | $(yes_no_for_count "$count_trufflehog") | ${count_trufflehog} | ${summary_trufflehog} |"
+            echo "| 🛡️ Trivy | $(yes_no_for_count "$count_trivy") | ${count_trivy} | ${summary_trivy} |"
+            echo "| 🐍 Snyk | N/A | - | ${snyk_line} |"
+            echo "| 🔵 SonarQube | N/A | - | ${sonarqube_line} |"
             echo ""
-            echo "### 🚨 Falhas detectadas"
+            echo "### 📎 Onde ver os detalhes"
             echo ""
-            echo "| Ferramenta | Status | Observação rápida |"
-            echo "|---|---|---|"
-            [ "$STATUS_CHECKOV" = "failure" ] && echo "| Checkov | ❌ failure | ${count_checkov} problemas IaC identificados |"
-            [ "$STATUS_GITLEAKS" = "failure" ] && echo "| Gitleaks | ❌ failure | ${count_gitleaks} segredos detectados |"
-            [ "$STATUS_TRUFFLEHOG" = "failure" ] && echo "| TruffleHog | ❌ failure | ${count_trufflehog} segredos detectados |"
-            [ "$STATUS_TRIVY" = "failure" ] && echo "| Trivy | ❌ failure | ${count_trivy} vulnerabilidades/misconfigs detectadas |"
-            echo ""
-            echo "### 📝 Observações"
-            echo ""
-            echo "- Esta pipeline usa **continue-on-error: true** para fins didáticos"
-            echo "- Os exemplos contêm vulnerabilidades **intencionais** para demonstração"
-            echo "- Relatórios completos disponíveis em **Artifacts** desta execução"
+            echo "- Checkov: artifact **checkov-results**"
+            echo "- Gitleaks: artifact **gitleaks-results**"
+            echo "- TruffleHog: artifact **trufflehog-results**"
+            echo "- Trivy: artifact **trivy-results**"
             echo ""
             echo "### 📚 Documentação"
             echo ""
@@ -749,38 +840,10 @@ jobs:
 
       - name: 📣 Log final da pipeline
         run: |
-          STATUS_CHECKOV="${{ needs.checkov.result }}"
-          STATUS_GITLEAKS="${{ needs.gitleaks.result }}"
-          STATUS_TRUFFLEHOG="${{ needs.trufflehog.result }}"
-          STATUS_TRIVY="${{ needs.trivy.result }}"
-          STATUS_SNYK="${{ needs.snyk.result }}"
-          STATUS_SONARQUBE="${{ needs.sonarqube.result }}"
-
-          icon_for_status() {
-            case "$1" in
-              success) echo "✅" ;;
-              failure) echo "❌" ;;
-              skipped) echo "⏭️" ;;
-              cancelled) echo "🚫" ;;
-              *) echo "❔" ;;
-            esac
-          }
-
-          echo "=================================================="
-          echo "  🔒 PIPELINE DE SEGURANÇA UNIFICADA - FINALIZADA  "
-          echo "=================================================="
-          echo ""
-          echo "  Ferramentas executadas:"
-          echo "  $(icon_for_status "$STATUS_CHECKOV") Checkov    - $STATUS_CHECKOV"
-          echo "  $(icon_for_status "$STATUS_GITLEAKS") Gitleaks   - $STATUS_GITLEAKS"
-          echo "  $(icon_for_status "$STATUS_TRUFFLEHOG") TruffleHog - $STATUS_TRUFFLEHOG"
-          echo "  $(icon_for_status "$STATUS_TRIVY") Trivy      - $STATUS_TRIVY"
-          echo "  $(icon_for_status "$STATUS_SNYK") Snyk       - $STATUS_SNYK"
-          echo "  $(icon_for_status "$STATUS_SONARQUBE") SonarQube  - $STATUS_SONARQUBE"
-          echo ""
-          echo "  📁 Relatórios salvos como Artifacts"
-          echo "  📖 Consulte a documentação em docs/"
-          echo "=================================================="
+          echo "==========================================================="
+          echo "  RELATÓRIO GERADO: ver aba Summary desta execução"
+          echo "  Conteúdo: issues por ferramenta + quantidade + top achados"
+          echo "==========================================================="
 
   # ===========================================================================
   # JOB 7: PYTHON CI - Stage de CI após validações de segurança
