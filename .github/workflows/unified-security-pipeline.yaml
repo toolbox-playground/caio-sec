@@ -98,6 +98,7 @@ jobs:
 
       # Scan do Dockerfile com Checkov
       - name: 🐳 Checkov - Scan Dockerfile
+        if: always()
         run: |
           echo "::group::Checkov - Análise Dockerfile"
           echo "📁 Escaneando: examples/python/Dockerfile"
@@ -110,6 +111,7 @@ jobs:
 
       # Scan geral de toda a estrutura do repositório
       - name: 🌐 Checkov - Scan completo do repositório
+        if: always()
         run: |
           echo "::group::Checkov - Scan Completo"
           echo "📁 Escaneando repositório completo..."
@@ -183,6 +185,7 @@ jobs:
 
       # Detecta segredos em arquivos do filesystem (novo subcomando 'dir')
       - name: 🕵️ Gitleaks - Scan diretório (filesystem)
+        if: always()
         run: |
           echo "::group::Gitleaks - Detecção em Arquivos (dir mode)"
           echo "🔎 Analisando arquivos do diretório (sem histórico Git)..."
@@ -242,12 +245,14 @@ jobs:
             --json \
             --no-update \
             --results=verified,unknown,unverified \
+            --fail \
             2>&1 | tee trufflehog-filesystem.json
           echo "Scan do filesystem concluído."
           echo "::endgroup::"
 
       # Scan do histórico Git
       - name: 🔍 TruffleHog - Scan do histórico Git
+        if: always()
         run: |
           echo "::group::TruffleHog - Scan Histórico Git"
           set -o pipefail
@@ -257,6 +262,7 @@ jobs:
             --json \
             --no-update \
             --results=verified,unknown,unverified \
+            --fail \
             2>&1 | tee trufflehog-git.json
           echo "Scan do histórico concluído."
           echo "::endgroup::"
@@ -335,6 +341,7 @@ jobs:
 
       # Scan do filesystem com Trivy
       - name: 🔍 Trivy - Scan do Filesystem
+        if: always()
         run: |
           echo "::group::Trivy - Scan Filesystem"
           echo "🔎 Analisando dependências do projeto..."
@@ -345,11 +352,18 @@ jobs:
             --output trivy-fs-report.txt \
             --quiet \
             examples/python/
+
+          trivy filesystem \
+            --format json \
+            --output trivy-fs-report.json \
+            --quiet \
+            examples/python/
           cat trivy-fs-report.txt
           echo "::endgroup::"
 
       # Scan de configurações IaC com Trivy
       - name: 🔍 Trivy - Scan de Configurações (IaC)
+        if: always()
         run: |
           echo "::group::Trivy - Scan IaC Config"
           echo "🔎 Analisando configurações de infraestrutura..."
@@ -358,6 +372,12 @@ jobs:
             --severity CRITICAL,HIGH,MEDIUM \
             --format table \
             --output trivy-config-report.txt \
+            --quiet \
+            .
+
+          trivy config \
+            --format json \
+            --output trivy-config-report.json \
             --quiet \
             .
           cat trivy-config-report.txt
@@ -372,7 +392,9 @@ jobs:
             trivy-image-report.txt
             trivy-image-report.json
             trivy-fs-report.txt
+            trivy-fs-report.json
             trivy-config-report.txt
+            trivy-config-report.json
           retention-days: 30
 
   # ===========================================================================
@@ -388,6 +410,11 @@ jobs:
     steps:
       - name: 📥 Checkout do código
         uses: actions/checkout@v4
+
+      - name: 📦 Baixar artifacts dos scanners
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
 
       - name: 🐍 Configurar Python
         uses: actions/setup-python@v5
@@ -614,48 +641,142 @@ jobs:
       # Gera o resumo final da execução
       - name: 📋 Gerar Resumo da Execução
         run: |
-          echo "## 🔒 Resumo da Pipeline de Segurança Unificada" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "Pipeline executada em: $(date +'%d/%m/%Y às %H:%M:%S UTC')" >> $GITHUB_STEP_SUMMARY
-          echo "Commit: \`${{ github.sha }}\`" >> $GITHUB_STEP_SUMMARY
-          echo "Branch: \`${{ github.ref_name }}\`" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "### 🛠️ Ferramentas Executadas" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "| Ferramenta | Tipo | Status | Descrição |" >> $GITHUB_STEP_SUMMARY
-          echo "|------------|------|--------|-----------|" >> $GITHUB_STEP_SUMMARY
-          echo "| 🏗️ Checkov | IaC Analysis | ${{ needs.checkov.result }} | Análise de Terraform e Dockerfile |" >> $GITHUB_STEP_SUMMARY
-          echo "| 🔑 Gitleaks | Secret Detection | ${{ needs.gitleaks.result }} | Detecção de segredos no Git |" >> $GITHUB_STEP_SUMMARY
-          echo "| 🐷 TruffleHog | Secret Hunter | ${{ needs.trufflehog.result }} | Caça a segredos com verificação |" >> $GITHUB_STEP_SUMMARY
-          echo "| 🛡️ Trivy | Vuln Scanner | ${{ needs.trivy.result }} | Scan de containers e dependências |" >> $GITHUB_STEP_SUMMARY
-          echo "| 🐍 Snyk | Code & Deps | ${{ needs.snyk.result }} | Análise de código e dependências |" >> $GITHUB_STEP_SUMMARY
-          echo "| 🔵 SonarQube | SAST | ${{ needs.sonarqube.result }} | Análise estática de qualidade e segurança |" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "### 📝 Observações" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "- ✅ Esta pipeline usa **continue-on-error: true** para fins didáticos" >> $GITHUB_STEP_SUMMARY
-          echo "- ⚠️ Os exemplos contêm vulnerabilidades **intencionais** para demonstração" >> $GITHUB_STEP_SUMMARY
-          echo "- 📁 Relatórios completos disponíveis em **Artifacts** desta execução" >> $GITHUB_STEP_SUMMARY
-          echo "- 🔐 Para habilitar Snyk, configure o secret **SNYK_TOKEN** no repositório" >> $GITHUB_STEP_SUMMARY
-          echo "- 🔵 Para habilitar SonarQube, configure os secrets **SONAR_TOKEN** e **SONAR_HOST_URL**" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "### 📚 Documentação" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "- [Checkov](docs/CHECKOV.md) | [Gitleaks](docs/GITLEAKS.md) | [TruffleHog](docs/TRUFFLEHOG.md) | [Trivy](docs/TRIVY.md) | [Snyk](docs/SNYK.md) | [SonarQube](docs/SONARQUBE.md)" >> $GITHUB_STEP_SUMMARY
+          STATUS_CHECKOV="${{ needs.checkov.result }}"
+          STATUS_GITLEAKS="${{ needs.gitleaks.result }}"
+          STATUS_TRUFFLEHOG="${{ needs.trufflehog.result }}"
+          STATUS_TRIVY="${{ needs.trivy.result }}"
+          STATUS_SNYK="${{ needs.snyk.result }}"
+          STATUS_SONARQUBE="${{ needs.sonarqube.result }}"
 
-      - name: ✅ Pipeline Concluída com Sucesso
+          icon_for_status() {
+            case "$1" in
+              success) echo "✅ success" ;;
+              failure) echo "❌ failure" ;;
+              skipped) echo "⏭️ skipped" ;;
+              cancelled) echo "🚫 cancelled" ;;
+              *) echo "❔ $1" ;;
+            esac
+          }
+
+          count_checkov=0
+          if [ -f artifacts/checkov-results/results_sarif.sarif ]; then
+            count_checkov=$(jq '[.runs[].results[]?] | length' artifacts/checkov-results/results_sarif.sarif 2>/dev/null || echo 0)
+          fi
+
+          count_gitleaks_git=0
+          if [ -f artifacts/gitleaks-results/gitleaks-report.sarif ]; then
+            count_gitleaks_git=$(jq '[.runs[].results[]?] | length' artifacts/gitleaks-results/gitleaks-report.sarif 2>/dev/null || echo 0)
+          fi
+          count_gitleaks_dir=0
+          if [ -f artifacts/gitleaks-results/gitleaks-dir-report.json ]; then
+            count_gitleaks_dir=$(jq 'if type=="array" then length elif has("leaks") then (.leaks|length) else 0 end' artifacts/gitleaks-results/gitleaks-dir-report.json 2>/dev/null || echo 0)
+          fi
+          count_gitleaks=$((count_gitleaks_git + count_gitleaks_dir))
+
+          count_trufflehog_fs=0
+          if [ -f artifacts/trufflehog-results/trufflehog-filesystem.json ]; then
+            count_trufflehog_fs=$(jq -s '[.[] | select(has("DetectorName"))] | length' artifacts/trufflehog-results/trufflehog-filesystem.json 2>/dev/null || echo 0)
+          fi
+          count_trufflehog_git=0
+          if [ -f artifacts/trufflehog-results/trufflehog-git.json ]; then
+            count_trufflehog_git=$(jq -s '[.[] | select(has("DetectorName"))] | length' artifacts/trufflehog-results/trufflehog-git.json 2>/dev/null || echo 0)
+          fi
+          count_trufflehog=$((count_trufflehog_fs + count_trufflehog_git))
+
+          count_trivy_image=0
+          if [ -f artifacts/trivy-results/trivy-image-report.json ]; then
+            count_trivy_image=$(jq '[.. | objects | .Vulnerabilities? // empty | .[]?] | length' artifacts/trivy-results/trivy-image-report.json 2>/dev/null || echo 0)
+          fi
+          count_trivy_fs=0
+          if [ -f artifacts/trivy-results/trivy-fs-report.json ]; then
+            count_trivy_fs=$(jq '[.. | objects | .Vulnerabilities? // empty | .[]?] | length' artifacts/trivy-results/trivy-fs-report.json 2>/dev/null || echo 0)
+          fi
+          count_trivy_config=0
+          if [ -f artifacts/trivy-results/trivy-config-report.json ]; then
+            count_trivy_config=$(jq '[.. | objects | .Misconfigurations? // empty | .[]?] | length' artifacts/trivy-results/trivy-config-report.json 2>/dev/null || echo 0)
+          fi
+          count_trivy=$((count_trivy_image + count_trivy_fs + count_trivy_config))
+
+          if [ "$STATUS_SNYK" = "skipped" ]; then
+            count_snyk="n/a"
+          else
+            count_snyk="ver artifacts"
+          fi
+
+          if [ "$STATUS_SONARQUBE" = "skipped" ]; then
+            count_sonarqube="n/a"
+          else
+            count_sonarqube="ver quality gate"
+          fi
+
+          {
+            echo "## 🔒 Resumo da Pipeline de Segurança Unificada"
+            echo ""
+            echo "Pipeline executada em: $(date +'%d/%m/%Y às %H:%M:%S UTC')"
+            echo "Commit: \`${{ github.sha }}\`"
+            echo "Branch: \`${{ github.ref_name }}\`"
+            echo ""
+            echo "### 🧾 Resultado Consolidado"
+            echo ""
+            echo "| Ferramenta | Status real | Achados (qtde) | Resumo |"
+            echo "|---|---|---:|---|"
+            echo "| 🏗️ Checkov | $(icon_for_status "$STATUS_CHECKOV") | ${count_checkov} | IaC (Terraform/Dockerfile/repo) |"
+            echo "| 🔑 Gitleaks | $(icon_for_status "$STATUS_GITLEAKS") | ${count_gitleaks} | Segredos em git + filesystem |"
+            echo "| 🐷 TruffleHog | $(icon_for_status "$STATUS_TRUFFLEHOG") | ${count_trufflehog} | Secrets (verified/unknown/unverified) |"
+            echo "| 🛡️ Trivy | $(icon_for_status "$STATUS_TRIVY") | ${count_trivy} | Vulnerabilidades + misconfigs |"
+            echo "| 🐍 Snyk | $(icon_for_status "$STATUS_SNYK") | ${count_snyk} | Dependências, container e IaC |"
+            echo "| 🔵 SonarQube | $(icon_for_status "$STATUS_SONARQUBE") | ${count_sonarqube} | SAST e quality gate |"
+            echo ""
+            echo "### 🚨 Falhas detectadas"
+            echo ""
+            echo "| Ferramenta | Status | Observação rápida |"
+            echo "|---|---|---|"
+            [ "$STATUS_CHECKOV" = "failure" ] && echo "| Checkov | ❌ failure | ${count_checkov} problemas IaC identificados |"
+            [ "$STATUS_GITLEAKS" = "failure" ] && echo "| Gitleaks | ❌ failure | ${count_gitleaks} segredos detectados |"
+            [ "$STATUS_TRUFFLEHOG" = "failure" ] && echo "| TruffleHog | ❌ failure | ${count_trufflehog} segredos detectados |"
+            [ "$STATUS_TRIVY" = "failure" ] && echo "| Trivy | ❌ failure | ${count_trivy} vulnerabilidades/misconfigs detectadas |"
+            echo ""
+            echo "### 📝 Observações"
+            echo ""
+            echo "- Esta pipeline usa **continue-on-error: true** para fins didáticos"
+            echo "- Os exemplos contêm vulnerabilidades **intencionais** para demonstração"
+            echo "- Relatórios completos disponíveis em **Artifacts** desta execução"
+            echo ""
+            echo "### 📚 Documentação"
+            echo ""
+            echo "- [Checkov](docs/CHECKOV.md) | [Gitleaks](docs/GITLEAKS.md) | [TruffleHog](docs/TRUFFLEHOG.md) | [Trivy](docs/TRIVY.md) | [Snyk](docs/SNYK.md) | [SonarQube](docs/SONARQUBE.md)"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: 📣 Log final da pipeline
         run: |
+          STATUS_CHECKOV="${{ needs.checkov.result }}"
+          STATUS_GITLEAKS="${{ needs.gitleaks.result }}"
+          STATUS_TRUFFLEHOG="${{ needs.trufflehog.result }}"
+          STATUS_TRIVY="${{ needs.trivy.result }}"
+          STATUS_SNYK="${{ needs.snyk.result }}"
+          STATUS_SONARQUBE="${{ needs.sonarqube.result }}"
+
+          icon_for_status() {
+            case "$1" in
+              success) echo "✅" ;;
+              failure) echo "❌" ;;
+              skipped) echo "⏭️" ;;
+              cancelled) echo "🚫" ;;
+              *) echo "❔" ;;
+            esac
+          }
+
           echo "=================================================="
-          echo "  🔒 PIPELINE DE SEGURANÇA UNIFICADA - CONCLUÍDA  "
+          echo "  🔒 PIPELINE DE SEGURANÇA UNIFICADA - FINALIZADA  "
           echo "=================================================="
           echo ""
           echo "  Ferramentas executadas:"
-          echo "  ✅ Checkov   - ${{ needs.checkov.result }}"
-          echo "  ✅ Gitleaks  - ${{ needs.gitleaks.result }}"
-          echo "  ✅ TruffleHog - ${{ needs.trufflehog.result }}"
-          echo "  ✅ Trivy     - ${{ needs.trivy.result }}"
-          echo "  ✅ Snyk      - ${{ needs.snyk.result }}"
-          echo "  ✅ SonarQube - ${{ needs.sonarqube.result }}"
+          echo "  $(icon_for_status "$STATUS_CHECKOV") Checkov    - $STATUS_CHECKOV"
+          echo "  $(icon_for_status "$STATUS_GITLEAKS") Gitleaks   - $STATUS_GITLEAKS"
+          echo "  $(icon_for_status "$STATUS_TRUFFLEHOG") TruffleHog - $STATUS_TRUFFLEHOG"
+          echo "  $(icon_for_status "$STATUS_TRIVY") Trivy      - $STATUS_TRIVY"
+          echo "  $(icon_for_status "$STATUS_SNYK") Snyk       - $STATUS_SNYK"
+          echo "  $(icon_for_status "$STATUS_SONARQUBE") SonarQube  - $STATUS_SONARQUBE"
           echo ""
           echo "  📁 Relatórios salvos como Artifacts"
           echo "  📖 Consulte a documentação em docs/"
