@@ -19,7 +19,7 @@ RUN pip install --upgrade pip && pip install --no-cache-dir -r requirements.txt
 
 COPY app.py ./
 
-RUN groupadd --system appgroup && useradd --system --gid appgroup --create-home appuser && chown -R appuser:appgroup /app
+RUN addgroup -S appgroup && adduser -S appuser -G appgroup && chown -R appuser:appgroup /app
 USER appuser
 
 HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
