@@ -146,7 +146,8 @@ jobs:
       - name: 📥 Checkout do código
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0
+          fetch-depth: 1
+          persist-credentials: false
 
       # Instalação manual do Gitleaks via wget/tar (sem usar action pronta)
       - name: 📦 Instalar Gitleaks manualmente via wget
@@ -179,7 +180,7 @@ jobs:
           gitleaks detect \
             --source . \
             --report-format sarif \
-            --report-path gitleaks-report.sarif \
+            --report-path /tmp/gitleaks-report.sarif \
             --verbose
           echo "::endgroup::"
 
@@ -193,7 +194,7 @@ jobs:
             --source . \
             --no-git \
             --report-format json \
-            --report-path gitleaks-dir-report.json \
+            --report-path /tmp/gitleaks-dir-report.json \
             --verbose
           echo "::endgroup::"
 
@@ -203,8 +204,8 @@ jobs:
         with:
           name: gitleaks-results
           path: |
-            gitleaks-report.sarif
-            gitleaks-dir-report.json
+            /tmp/gitleaks-report.sarif
+            /tmp/gitleaks-dir-report.json
           retention-days: 30
 
   # ===========================================================================
@@ -219,7 +220,8 @@ jobs:
       - name: 📥 Checkout do código
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0
+          fetch-depth: 1
+          persist-credentials: false
 
       # Instalação manual do TruffleHog via script (sem usar action pronta)
       - name: 📦 Instalar TruffleHog manualmente via curl
