@@ -173,7 +173,6 @@ jobs:
 
       # Detecta segredos no histórico completo do Git (novo subcomando 'git')
       - name: 🔍 Gitleaks - Scan histórico Git
-        if: ${{ github.event_name != 'pull_request' }}
         run: |
           echo "::group::Gitleaks - Detecção no Histórico Git"
           echo "🔎 Analisando histórico completo do repositório..."
@@ -193,16 +192,8 @@ jobs:
           gitleaks detect \
             --source . \
             --no-git \
-            --report-format sarif \
-            --report-path gitleaks-dir-report.sarif \
-            --redact \
-            --verbose
-          gitleaks detect \
-            --source . \
-            --no-git \
             --report-format json \
             --report-path gitleaks-dir-report.json \
-            --redact \
             --verbose
           echo "::endgroup::"
 
@@ -213,7 +204,6 @@ jobs:
           name: gitleaks-results
           path: |
             gitleaks-report.sarif
-            gitleaks-dir-report.sarif
             gitleaks-dir-report.json
           retention-days: 30
 
@@ -244,17 +234,6 @@ jobs:
           trufflehog --version
           echo "::endgroup::"
 
-      - name: 🧾 Gerar lista de exclusão TruffleHog
-        run: |
-          cat > .trufflehog-exclude.txt << 'EOF'
-          ^\.git/
-          ^gitleaks-report\.sarif$
-          ^gitleaks-dir-report\.sarif$
-          ^gitleaks-dir-report\.json$
-          ^trufflehog-filesystem\.json$
-          ^trufflehog-git\.json$
-          EOF
-
       # Scan do filesystem local
       - name: 🔍 TruffleHog - Scan do Filesystem
         run: |
@@ -265,7 +244,6 @@ jobs:
             . \
             --json \
             --no-update \
-            --exclude-paths .trufflehog-exclude.txt \
             --results=verified,unknown,unverified \
             --fail \
             2>&1 | tee trufflehog-filesystem.json
@@ -274,7 +252,7 @@ jobs:
 
       # Scan do histórico Git
       - name: 🔍 TruffleHog - Scan do histórico Git
-        if: ${{ always() && github.event_name != 'pull_request' }}
+        if: always()
         run: |
           echo "::group::TruffleHog - Scan Histórico Git"
           set -o pipefail
@@ -345,8 +323,7 @@ jobs:
           set +e
           trivy image \
             --exit-code 1 \
-            --ignore-unfixed \
-            --severity CRITICAL,HIGH \
+            --severity CRITICAL,HIGH,MEDIUM \
             --format table \
             --output trivy-image-report.txt \
             --quiet \
