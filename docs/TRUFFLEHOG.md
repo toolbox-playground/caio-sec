@@ -170,20 +170,20 @@ trufflehog git https://github.com/org/repo.git
 
 # Com credenciais (repo privado)
 trufflehog git https://github.com/org/private-repo.git \
-  --token=ghp_your_github_token
+  --token=GITHUB_TOKEN_EXAMPLE_REDACTED
 
 # ---- GITHUB ----
 # Analisa todos os repos de uma organização
 trufflehog github --org=minha-organizacao \
-  --token=ghp_your_github_token
+  --token=GITHUB_TOKEN_EXAMPLE_REDACTED
 
 # Analisa usuário específico
 trufflehog github --user=meu-usuario \
-  --token=ghp_your_github_token
+  --token=GITHUB_TOKEN_EXAMPLE_REDACTED
 
 # Inclui issues e PRs no scan
 trufflehog github --org=minha-organizacao \
-  --token=ghp_your_github_token \
+  --token=GITHUB_TOKEN_EXAMPLE_REDACTED \
   --issue-comments \
   --pr-comments
 
@@ -367,8 +367,8 @@ fi
   "DetectorName": "AWSKeyID",
   "DecoderName": "PLAIN",
   "Verified": false,
-  "Raw": "AKIAIOSFODNN7EXAMPLE",
-  "RawV2": "AKIAIOSFODNN7EXAMPLEwJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY",
+  "Raw": "EXAMPLE_AWS_KEY_REDACTED",
+  "RawV2": "EXAMPLE_AWS_COMPOSITE_SECRET_REDACTED",
   "Redacted": "AKIA************MPLE",
   "ExtraData": null,
   "StructuredData": null

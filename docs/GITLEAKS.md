@@ -258,7 +258,7 @@ gitleaks detect --no-git --source . --redact=50 --verbose
 
 # Pipar conteúdo para verificação
 cat suspicious.txt | gitleaks stdin --verbose
-echo 'AWS_KEY=AKIAIOSFODNN7EXAMPLE' | gitleaks stdin
+echo 'AWS_KEY=EXAMPLE_AWS_KEY_REDACTED' | gitleaks stdin
 
 # Usar arquivo de configuração customizado
 gitleaks git . --config .gitleaks.toml
@@ -461,8 +461,8 @@ gitleaks git . \
     "EndLine": 12,
     "StartColumn": 20,
     "EndColumn": 40,
-    "Match": "AKIAIOSFODNN7EXAMPLE",
-    "Secret": "AKIAIOSFODNN7EXAMPLE",
+    "Match": "EXAMPLE_AWS_KEY_REDACTED",
+    "Secret": "EXAMPLE_AWS_KEY_REDACTED",
     "File": "examples/secrets/vulnerable-sample.env",
     "SymlinkFile": "",
     "Commit": "abc123...",
