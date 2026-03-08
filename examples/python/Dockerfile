@@ -2,7 +2,7 @@
 # Dockerfile hardenizado para exemplo de correção do Lab 001 DevSecOps
 # =============================================================================
 
-FROM python:3.13-alpine3.21
+FROM python:3.13-alpine3.22
 
 LABEL maintainer="caio@devsecops.example.com"
 LABEL version="2.0.0"
@@ -13,6 +13,8 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     FLASK_ENV=production
 
 WORKDIR /app
+
+RUN apk --no-cache update && apk --no-cache upgrade
 
 COPY requirements.txt .
 RUN pip install --upgrade pip && pip install --no-cache-dir -r requirements.txt
