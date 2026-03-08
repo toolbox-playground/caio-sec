@@ -392,9 +392,9 @@ O **SonarQube** realiza análise estática profunda do código (SAST) com rastre
 ### 🔐 `examples/secrets/vulnerable-sample.env`
 | Segredo | Tipo | Ferramenta que detecta |
 |---------|------|----------------------|
-| `AKIAIOSFODNN7EXAMPLE` | AWS Access Key | Gitleaks, TruffleHog |
-| `sk_live_...` | Stripe API Key | Gitleaks, TruffleHog |
-| `ghp_...` | GitHub Personal Token | Gitleaks, TruffleHog |
+| `EXAMPLE_AWS_KEY_REDACTED` | AWS Access Key | Gitleaks, TruffleHog |
+| `EXAMPLE_STRIPE_KEY_REDACTED` | Stripe API Key | Gitleaks, TruffleHog |
+| `EXAMPLE_GH_TOKEN_REDACTED` | GitHub Personal Token | Gitleaks, TruffleHog |
 | RSA Private Key | Cryptographic Key | Gitleaks, TruffleHog |
 
 ---

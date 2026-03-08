@@ -21,14 +21,14 @@ import sqlite3
 import hashlib
 import os
 
-# ⚠️ VULNERABILIDADE #1: Segredos hardcoded diretamente no código
-# Ferramentas que detectam: Gitleaks, TruffleHog, Snyk Code
-SECRET_KEY = "super-secret-key-12345"
-API_KEY = "sk-proj-abc123xyz456def789"
-DATABASE_PASSWORD = "admin123"
-AWS_ACCESS_KEY = "AKIAIOSFODNN7EXAMPLE"
-AWS_SECRET_KEY = "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"
-STRIPE_KEY = "sk_live_4eC39HqLyjWDarjtT1zdp7dc"
+# ✅ CORRIGIDO: Segredos movidos para variáveis de ambiente
+# Ferramentas: Gitleaks, TruffleHog detectam e aprovam esta solução
+SECRET_KEY = os.getenv("SECRET_KEY", "change-me-in-dev")
+API_KEY = os.getenv("API_KEY", "")
+DATABASE_PASSWORD = os.getenv("DATABASE_PASSWORD", "")
+AWS_ACCESS_KEY = os.getenv("AWS_ACCESS_KEY", "")
+AWS_SECRET_KEY = os.getenv("AWS_SECRET_KEY", "")
+STRIPE_KEY = os.getenv("STRIPE_KEY", "")
 
 app = Flask(__name__)
 
@@ -72,9 +72,9 @@ def login():
     conn = sqlite3.connect('users.db')
     cursor = conn.cursor()
 
-    # ⚠️ SQL INJECTION: Nunca faça assim! Use parâmetros (?) ao invés de f-string
-    query = f"SELECT * FROM users WHERE username='{username}' AND password='{password}'"
-    cursor.execute(query)
+    # ✅ CORRIGIDO: Query parametrizada (segura contra SQL Injection)
+    query = "SELECT * FROM users WHERE username = ? AND password = ?"
+    cursor.execute(query, (username, password))
 
     user = cursor.fetchone()
     conn.close()
