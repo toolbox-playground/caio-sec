@@ -11,30 +11,23 @@
 # Para consultar CVEs: https://nvd.nist.gov/
 # =============================================================================
 
-# ⚠️ Flask 2.0.1 - CVE-2023-30861 (Open Redirect)
-# Versão segura atual: flask>=3.0.0
-flask==2.0.1
+# ✅ Flask 3.0.3 - Seguro
+flask>=3.0.0
 
-# ⚠️ requests 2.25.0 - CVE-2023-32681 (Proxy-Authorization headers leak)
-# Versão segura atual: requests>=2.31.0
-requests==2.25.0
+# ✅ requests 2.31.0 - Seguro
+requests>=2.31.0
 
-# ⚠️ pycryptodome 3.9.0 - Múltiplas vulnerabilidades
-# Versão segura atual: pycryptodome>=3.19.0
-pycryptodome==3.9.0
+# ✅ pycryptodome 3.19.0 - Seguro
+pycryptodome>=3.19.0
 
-# ⚠️ SQLAlchemy 1.3.0 - Versão antiga com problemas de segurança
-# Versão segura atual: SQLAlchemy>=2.0.0
-sqlalchemy==1.3.0
+# ✅ SQLAlchemy 2.0.0 - Seguro
+sqlalchemy>=2.0.0
 
-# ⚠️ Werkzeug 2.0.0 - Dependência do Flask com CVE-2023-25577
-# Versão segura atual: Werkzeug>=3.0.0
-Werkzeug==2.0.0
+# ✅ Werkzeug 3.0.0 - Seguro
+Werkzeug>=3.0.0
 
-# ⚠️ Jinja2 3.0.0 - CVE-2024-22195 (XSS)
-# Versão segura atual: Jinja2>=3.1.3
-Jinja2==3.0.0
+# ✅ Jinja2 3.1.3 - Seguro
+Jinja2>=3.1.3
 
-# ⚠️ cryptography 3.4.6 - Múltiplos CVEs
-# Versão segura atual: cryptography>=42.0.0
-cryptography==3.4.6
+# ✅ cryptography 42.0.0 - Seguro
+cryptography>=42.0.0
